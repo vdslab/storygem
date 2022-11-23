@@ -1,168 +1,99 @@
-import React, { useState } from "react"
-import { extent, line, curveLinearClosed } from "d3"
-import { times } from "lodash-es"
-import seedrandom from "seedrandom"
-import { voronoiMapSimulation } from "d3-voronoi-map"
+//import React, { useState } from "react"
+import { hierarchy, range, scaleOrdinal } from "d3";
+import * as d3Collection from 'd3-collection';
+import { voronoiTreemap } from "d3-voronoi-treemap";
+import data from "../data/news.json";
 
-const DEBUG = false
+const VoronoiTreeMap = () => {
+  const nested = d3Collection.nest()
+  .key(d => d.type)
+  .entries(data);
 
-//配列内の最小値と最大値の差を求める関数
-const extentLength = (array) => {
-  const [min, max] = extent(array)
-  return max - min
-}
+  const hier = hierarchy({ key: "donation", values: nested }, d => d.values).sum(
+    d => +d.amount
+  );
 
-//配列内最小値と最大値の平均を求める関数
-const extentMean = (array) => {
-  const [min, max] = extent(array)
-  return (max + min) / 2
-}
+  // dimensions
+  let chartSize = 500,
+    margin = {
+      top: 20,
+      right: 20,
+      bottom: 20,
+      left: 20
+    };
 
-const computeCirclePolygon = (radius,pointsCount=60) => {
-  const increment = (2 * Math.PI) / pointsCount
+  // color
+  const donationTypes = [...new Set(data.map(d => d.type))];
+  const colorScale = scaleOrdinal()
+    .domain(donationTypes)
+    .range([
+      "#3f0d12",
+      "#a71d31",
+      "#f1f0cc",
+      "#d5bf86",
+      "#8d775f",
+      "#ff8360",
+      "#f4afb4",
+      "#797d81",
+      "#4e6e5d",
+      "#00a7e1"
+    ]);
+  
 
-  return times(pointsCount).map((i) => {
-    const a = increment * (i + 1)
-    return [radius + radius * Math.cos(a), radius + radius * Math.sin(a)]
-  })
-}
-
-const buildVoronoiTree = (dataset,weightAccessor,radius=150) => {
-  const seedPrng = seedrandom("hello")
-
-  dataset = dataset.filter((d) => weightAccessor(d) !== 0)
-
-  const simulation = voronoiMapSimulation(dataset)
-    .weight(weightAccessor)
-    .prng(seedPrng)
-    .clip(computeCirclePolygon(radius))
-    .minWeightRatio(0)
-    .convergenceRatio(0.001)
-    .maxIterationCount(Infinity)
-    .stop()
-
-  let state = simulation.state() // { ended, polygons, iterationCount, convergenceRatio }
-  let cycles = 0
-
-  while (!state.ended) {
-    simulation.tick()
-    state = simulation.state()
-
-    if (cycles > 200) throw new Error("MORE THAN 10k!")
-
-    cycles++
+  const colorHierarchy = (h) => {
+    if (h.depth === 0) {
+      h.color = "none";
+    } else if (h.depth === 1) {
+      h.color = colorScale(h.data.key);
+    } else {
+      h.color = h.parent.color;
+    }
+    if (h.children) {
+      h.children.forEach(child => colorHierarchy(child));
+    }
   }
 
-  const polygons = state.polygons 
+  const ellipse = range(100).map(i => [
+    (chartSize * (1 + 0.99 * Math.cos((i / 50) * Math.PI))) / 2,
+    (chartSize * (1 + 0.99 * Math.sin((i / 50) * Math.PI))) / 2
+  ]);
 
-  const cells = polygons.map((polygon, i) => ({
-    datum: polygon.site.originalObject.data.originalData,
-    polygon,
-  }))
+  const _voronoiTreemap = voronoiTreemap().clip(ellipse);
 
-  return cells
-}
+  colorHierarchy(hier);
+  _voronoiTreemap(hier);
 
-const VoronoiTreeMap = ({
-  margin,
-  radius,
-  dataset,
-  weightAccessor,
-  colorAccessor = () => "black",
-  labelAccessor = () => "",
-}) => {
-  const cells = buildVoronoiTree(dataset, weightAccessor, radius)
-  const svgWidth = radius * 2 + margin.right + margin.left
-  const svgHeight = radius * 2 + margin.top + margin.bottom
-
+  let allNodes = hier
+    .descendants()
+    .sort((a, b) => b.depth - a.depth)
+    .map((d, i) => Object.assign({}, d, { id: i }));
+  
   return (
-    <svg className="-voronoi-treemap" width={svgWidth} height={svgHeight}>
-      <g
-        className="cells"
-        transform={`translate(${[margin.left, margin.top]})`}
-      >
-        {cells.map((cell, i) => (
-          <Cell
-            key={cell.datum.id || i}
-            cell={cell}
-            color={colorAccessor(cell.datum)}
-            label={labelAccessor(cell.datum)}
-          />
-        ))}
-      </g>
-    </svg>
-  )
-}
-
-const buildPolygonPath = line()
-  .x((d) => d[0])
-  .y((d) => d[1])
-  .curve(curveLinearClosed)
-
-const Cell = ({ cell, color, label = null }) => {
-  const { polygon } = cell
-
-  const selectedCell = {}
-  const setHoveredCell = (x) => {}
-  const setSelectedCell = (x) => {
-    console.log(x)
-  }
-
-  const [opacity, setOpacity] = useState(1)
-
-  const cx = extentMean(polygon.map((p) => p[0]))
-  const cy = extentMean(polygon.map((p) => p[1]))
-  const w = extentLength(polygon.map((p) => p[0]))
-  const isSelected = cell === selectedCell
-
-  return (
-    <>
-      <path
-        className="-cell"
-        d={buildPolygonPath(polygon)}
-        fill={color}
-        stroke={isSelected ? "black" : "white"}
-        strokeWidth={isSelected ? 2 : 1}
-        opacity={opacity}
-        onMouseEnter={() => {
-          setHoveredCell(cell.datum)
-          setOpacity(0.8)
-        }}
-        onMouseLeave={() => {
-          setHoveredCell(null)
-          setOpacity(1)
-        }}
-        onClick={() => setSelectedCell(cell.datum)}
-      ></path>
-
-      {label && (
-        <>
-          {DEBUG && (
-            <rect
-              x={cx - w / 2}
-              y={cy - 20}
-              width={w}
-              height={40}
-              fill="none"
-              stroke="orange"
-            />
-          )}
-          <text // use @vx/text to have automatic word-wrapping
-            x={cx}
-            y={cy}
-            width={w}
-            fontSize={12}
-            fontWeight="200"
-            textAnchor="middle"
-            dominantBaseline="middle"
-            style={{ pointerEvents: "none", fill: "white" }}
-          >
-            {label}
-          </text>
-        </>
-      )}
-    </>
-  )
+    <div clientWidth={chartSize}>
+      <svg width={chartSize} height={chartSize}>
+        <g transform={`translate(${margin.left}, ${margin.top})`}>
+          <g>
+            {
+              (function (){
+                const list = [];
+                for(let node of allNodes){
+                  console.log(node);
+                  list.push(
+                    <path 
+                      d = {"M" + node.polygon.join("L") + "Z"}
+                      fill = {node.parent ? node.parent.color : node.color}
+                      stroke = {"rgba(255,255,255,0.5)"}
+                    />
+                  )
+                }
+                return list;
+              }())
+            }
+          </g>
+        </g>
+      </svg>
+    </div>
+  );
 }
 
 export default VoronoiTreeMap;
