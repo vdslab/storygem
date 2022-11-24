@@ -1,17 +1,162 @@
 [
     {
         "type": "cluster1",
-        "org": "japan",
-        "amount": "7"
-      },
-      {
-        "type": "cluster2",
         "org": "ball",
-        "amount": "3"
-      },
-      {
+        "amount": 2
+    },
+    {
+        "type": "cluster1",
+        "org": "cup",
+        "amount": 3
+    },
+    {
+        "type": "cluster1",
+        "org": "germany",
+        "amount": 6
+    },
+    {
+        "type": "cluster1",
+        "org": "japan",
+        "amount": 7
+    },
+    {
+        "type": "cluster1",
+        "org": "looked",
+        "amount": 2
+    },
+    {
+        "type": "cluster1",
+        "org": "neuer",
+        "amount": 2
+    },
+    {
+        "type": "cluster1",
+        "org": "played",
+        "amount": 2
+    },
+    {
+        "type": "cluster1",
+        "org": "saudi",
+        "amount": 2
+    },
+    {
+        "type": "cluster1",
+        "org": "shock",
+        "amount": 2
+    },
+    {
+        "type": "cluster2",
+        "org": "asano",
+        "amount": 3
+    },
+    {
+        "type": "cluster2",
+        "org": "chances",
+        "amount": 2
+    },
+    {
+        "type": "cluster2",
+        "org": "game",
+        "amount": 7
+    },
+    {
+        "type": "cluster3",
+        "org": "doan",
+        "amount": 3
+    },
+    {
+        "type": "cluster3",
+        "org": "face",
+        "amount": 2
+    },
+    {
         "type": "cluster3",
         "org": "german",
-        "amount": "9"
-      }
+        "amount": 3
+    },
+    {
+        "type": "cluster3",
+        "org": "goals",
+        "amount": 2
+    },
+    {
+        "type": "cluster3",
+        "org": "half",
+        "amount": 5
+    },
+    {
+        "type": "cluster3",
+        "org": "showed",
+        "amount": 2
+    },
+    {
+        "type": "cluster3",
+        "org": "team",
+        "amount": ""
+    },
+    {
+        "type": "cluster3",
+        "org": "win",
+        "amount": 2
+    },
+    {
+        "type": "cluster4",
+        "org": "argentina",
+        "amount": 2
+    },
+    {
+        "type": "cluster4",
+        "org": "champions",
+        "amount": 2
+    },
+    {
+        "type": "cluster4",
+        "org": "defeat",
+        "amount": 2
+    },
+    {
+        "type": "cluster4",
+        "org": "minute",
+        "amount": 2
+    },
+    {
+        "type": "cluster5",
+        "org": "asian",
+        "amount": 2
+    },
+    {
+        "type": "cluster5",
+        "org": "attack",
+        "amount": 2
+    },
+    {
+        "type": "cluster5",
+        "org": "early",
+        "amount": 2
+    },
+    {
+        "type": "cluster5",
+        "org": "penalty",
+        "amount": 2
+    },
+    {
+        "type": "cluster5",
+        "org": "time",
+        "amount": 2
+    },
+    {
+        "type": "cluster5",
+        "org": "turned",
+        "amount": 2
+    },
+    {
+        "type": "cluster5",
+        "org": "victory",
+        "amount": 3
+    },
+    {
+        "type": "cluster5",
+        "org": "wanted",
+        "amount": 2
+    }
 ]
