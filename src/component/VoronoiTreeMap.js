@@ -2,18 +2,20 @@
 import { hierarchy, range, scaleOrdinal } from "d3";
 import * as d3Collection from 'd3-collection';
 import { voronoiTreemap } from "d3-voronoi-treemap";
-import data from "../data/news.json";
+import data from "../data/einglishNews.json"
 
 const VoronoiTreeMap = () => {
   const nested = d3Collection.nest()
   .key(d => d.type)
   .entries(data);
 
+  //階層の設定
   const hier = hierarchy({ key: "donation", values: nested }, d => d.values).sum(
     d => +d.amount
   );
 
-  // dimensions
+  console.log(hier)
+
   let chartSize = 500,
     margin = {
       top: 20,
@@ -22,7 +24,6 @@ const VoronoiTreeMap = () => {
       left: 20
     };
 
-  // color
   const donationTypes = [...new Set(data.map(d => d.type))];
   const colorScale = scaleOrdinal()
     .domain(donationTypes)
@@ -42,13 +43,16 @@ const VoronoiTreeMap = () => {
 
   const colorHierarchy = (h) => {
     if (h.depth === 0) {
+      ///階層0なら色なし
       h.color = "none";
     } else if (h.depth === 1) {
+      //階層1ならカラースケールから色を設定
       h.color = colorScale(h.data.key);
     } else {
       h.color = h.parent.color;
     }
     if (h.children) {
+      //子にも同じ処理を再起的にする
       h.children.forEach(child => colorHierarchy(child));
     }
   }
@@ -63,11 +67,12 @@ const VoronoiTreeMap = () => {
   colorHierarchy(hier);
   _voronoiTreemap(hier);
 
-  let allNodes = hier
+  const allNodes = hier
     .descendants()
     .sort((a, b) => b.depth - a.depth)
     .map((d, i) => Object.assign({}, d, { id: i }));
   
+  console.log(allNodes)
   return (
     <div clientWidth={chartSize}>
       <svg width={chartSize} height={chartSize}>
@@ -77,13 +82,20 @@ const VoronoiTreeMap = () => {
               (function (){
                 const list = [];
                 for(let node of allNodes){
-                  console.log(node);
+                  console.log(node)
+                  let svgText = <div></div>
+                  if(node.parent !== null){
+                    svgText = <text x = {node.polygon.site.x} y = {node.polygon.site.y}>{node.data.org}</text>
+                  }
                   list.push(
-                    <path 
-                      d = {"M" + node.polygon.join("L") + "Z"}
-                      fill = {node.parent ? node.parent.color : node.color}
-                      stroke = {"rgba(255,255,255,0.5)"}
-                    />
+                    <g>
+                      <path 
+                        d = {"M" + node.polygon.join("L") + "Z"}
+                        fill = {node.parent ? node.parent.color : node.color}
+                        stroke = {"rgba(255,255,255,0.5)"}
+                      />
+                      {svgText}
+                    </g>
                   )
                 }
                 return list;

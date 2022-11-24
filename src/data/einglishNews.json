@@ -1,0 +1,17 @@
+[
+    {
+        "type": "cluster1",
+        "org": "japan",
+        "amount": "7"
+      },
+      {
+        "type": "cluster2",
+        "org": "ball",
+        "amount": "3"
+      },
+      {
+        "type": "cluster3",
+        "org": "german",
+        "amount": "9"
+      }
+]
