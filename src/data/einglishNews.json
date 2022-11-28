@@ -1,13 +1,123 @@
 [
     {
         "type": "cluster1",
-        "org": "ball",
+        "org": "act",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "aggressively",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "argentina",
         "amount": 2
     },
     {
         "type": "cluster1",
-        "org": "cup",
+        "org": "armband",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "attack",
+        "amount": 2
+    },
+    {
+        "type": "cluster1",
+        "org": "avail",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "banned",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "barely",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "brought",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "champions",
+        "amount": 2
+    },
+    {
+        "type": "cluster1",
+        "org": "changed",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "clipped",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "coach",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "covered",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "defend",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "deny",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "dispatching",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "doan",
         "amount": 3
+    },
+    {
+        "type": "cluster1",
+        "org": "dominate",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "enjoyed",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "equalized",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "fellow",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "fillip",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "fixture",
+        "amount": 1
     },
     {
         "type": "cluster1",
@@ -16,13 +126,78 @@
     },
     {
         "type": "cluster1",
+        "org": "gesture",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "goal",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "group",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "half",
+        "amount": 5
+    },
+    {
+        "type": "cluster1",
+        "org": "high",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "incredible",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "initially",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "injected",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
         "org": "japan",
         "amount": 7
     },
     {
         "type": "cluster1",
-        "org": "looked",
+        "org": "lost",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "lovely",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "made",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "minute",
         "amount": 2
+    },
+    {
+        "type": "cluster1",
+        "org": "mouths",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "needed",
+        "amount": 1
     },
     {
         "type": "cluster1",
@@ -31,28 +206,283 @@
     },
     {
         "type": "cluster1",
-        "org": "played",
+        "org": "nico",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "nightmare",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "offside",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "penalty",
         "amount": 2
     },
     {
         "type": "cluster1",
-        "org": "saudi",
+        "org": "periods",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "playing",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "price",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "pushed",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "result",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "rica",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "run",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "sakai",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "save",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "scored",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "series",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "shown",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "smallest",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "smash",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "spain",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "start",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "stoppage",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "strong",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "struggled",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "substitute",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "substitutes",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "surprise",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "threat",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "touch",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "trade",
+        "amount": 1
+    },
+    {
+        "type": "cluster1",
+        "org": "turned",
         "amount": 2
     },
     {
         "type": "cluster1",
-        "org": "shock",
+        "org": "wanted",
+        "amount": 2
+    },
+    {
+        "type": "cluster1",
+        "org": "watching",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "amends",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "angle",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "antonio",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "asian",
         "amount": 2
     },
     {
         "type": "cluster2",
-        "org": "asano",
-        "amount": 3
+        "org": "ball",
+        "amount": 2
     },
     {
         "type": "cluster2",
-        "org": "chances",
+        "org": "bench",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "big",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "block",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "captain",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "causing",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "comeback",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "competitive",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "control",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "david",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "defeat",
         "amount": 2
+    },
+    {
+        "type": "cluster2",
+        "org": "defender",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "defending",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "doha",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "dominance",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "effort",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "energy",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "exit",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "fans",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "feel",
+        "amount": 1
     },
     {
         "type": "cluster2",
@@ -60,19 +490,259 @@
         "amount": 7
     },
     {
-        "type": "cluster3",
-        "org": "doan",
-        "amount": 3
+        "type": "cluster2",
+        "org": "goalkeeper",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "jonas",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "joshua",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "joy",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "kai",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "keeping",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "kick",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "long",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "looked",
+        "amount": 2
+    },
+    {
+        "type": "cluster2",
+        "org": "making",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "mexico",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "paid",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "pattern",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "penetrating",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "persistently",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "picked",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "ply",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "post",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "potentially",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "profligacy",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "protest",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "raum",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "reaching",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "rewarded",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "roam",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "routine",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "sanctions",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "saudi",
+        "amount": 2
+    },
+    {
+        "type": "cluster2",
+        "org": "saves",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "shaking",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "shot",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "shuichi",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "side",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "smashed",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "space",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "subdued",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "substitutions",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "successive",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "thought",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "thrilling",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "times",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "touched",
+        "amount": 1
+    },
+    {
+        "type": "cluster2",
+        "org": "winner",
+        "amount": 1
     },
     {
         "type": "cluster3",
-        "org": "face",
+        "org": "chances",
         "amount": 2
     },
     {
         "type": "cluster3",
-        "org": "german",
-        "amount": 3
+        "org": "condemned",
+        "amount": 1
+    },
+    {
+        "type": "cluster3",
+        "org": "costa",
+        "amount": 1
+    },
+    {
+        "type": "cluster3",
+        "org": "emotional",
+        "amount": 1
+    },
+    {
+        "type": "cluster3",
+        "org": "explosion",
+        "amount": 1
+    },
+    {
+        "type": "cluster3",
+        "org": "fourth",
+        "amount": 1
+    },
+    {
+        "type": "cluster3",
+        "org": "front",
+        "amount": 1
+    },
+    {
+        "type": "cluster3",
+        "org": "gleefully",
+        "amount": 1
     },
     {
         "type": "cluster3",
@@ -81,62 +751,362 @@
     },
     {
         "type": "cluster3",
-        "org": "half",
-        "amount": 5
+        "org": "ground",
+        "amount": 1
     },
     {
         "type": "cluster3",
-        "org": "showed",
-        "amount": 2
+        "org": "held",
+        "amount": 1
     },
     {
         "type": "cluster3",
-        "org": "team",
-        "amount": ""
+        "org": "left",
+        "amount": 1
     },
     {
         "type": "cluster3",
-        "org": "win",
-        "amount": 2
+        "org": "maeda",
+        "amount": 1
+    },
+    {
+        "type": "cluster3",
+        "org": "players",
+        "amount": 1
+    },
+    {
+        "type": "cluster3",
+        "org": "response",
+        "amount": 1
+    },
+    {
+        "type": "cluster3",
+        "org": "south",
+        "amount": 1
+    },
+    {
+        "type": "cluster3",
+        "org": "stage",
+        "amount": 1
+    },
+    {
+        "type": "cluster3",
+        "org": "striker",
+        "amount": 1
+    },
+    {
+        "type": "cluster3",
+        "org": "tight",
+        "amount": 1
+    },
+    {
+        "type": "cluster3",
+        "org": "tournament",
+        "amount": 1
     },
     {
         "type": "cluster4",
-        "org": "argentina",
-        "amount": 2
+        "org": "atmosphere",
+        "amount": 1
     },
     {
         "type": "cluster4",
-        "org": "champions",
-        "amount": 2
+        "org": "backdrop",
+        "amount": 1
     },
     {
         "type": "cluster4",
-        "org": "defeat",
-        "amount": 2
+        "org": "box",
+        "amount": 1
     },
     {
         "type": "cluster4",
-        "org": "minute",
-        "amount": 2
+        "org": "bring",
+        "amount": 1
     },
     {
-        "type": "cluster5",
-        "org": "asian",
-        "amount": 2
+        "type": "cluster4",
+        "org": "change",
+        "amount": 1
     },
     {
-        "type": "cluster5",
-        "org": "attack",
-        "amount": 2
+        "type": "cluster4",
+        "org": "countries",
+        "amount": 1
     },
     {
-        "type": "cluster5",
+        "type": "cluster4",
         "org": "early",
         "amount": 2
     },
     {
+        "type": "cluster4",
+        "org": "effectively",
+        "amount": 1
+    },
+    {
+        "type": "cluster4",
+        "org": "extreme",
+        "amount": 1
+    },
+    {
+        "type": "cluster4",
+        "org": "face",
+        "amount": 2
+    },
+    {
+        "type": "cluster4",
+        "org": "fatal",
+        "amount": 1
+    },
+    {
+        "type": "cluster4",
+        "org": "global",
+        "amount": 1
+    },
+    {
+        "type": "cluster4",
+        "org": "great",
+        "amount": 1
+    },
+    {
+        "type": "cluster4",
+        "org": "head",
+        "amount": 1
+    },
+    {
+        "type": "cluster4",
+        "org": "inexplicably",
+        "amount": 1
+    },
+    {
+        "type": "cluster4",
+        "org": "launched",
+        "amount": 1
+    },
+    {
+        "type": "cluster4",
+        "org": "loose",
+        "amount": 1
+    },
+    {
+        "type": "cluster4",
+        "org": "ludicrous",
+        "amount": 1
+    },
+    {
+        "type": "cluster4",
+        "org": "manuel",
+        "amount": 1
+    },
+    {
+        "type": "cluster4",
+        "org": "mueller",
+        "amount": 1
+    },
+    {
+        "type": "cluster4",
+        "org": "opener",
+        "amount": 1
+    },
+    {
+        "type": "cluster4",
+        "org": "picture",
+        "amount": 1
+    },
+    {
+        "type": "cluster4",
+        "org": "played",
+        "amount": 2
+    },
+    {
+        "type": "cluster4",
+        "org": "repeat",
+        "amount": 1
+    },
+    {
+        "type": "cluster4",
+        "org": "row",
+        "amount": 1
+    },
+    {
+        "type": "cluster4",
+        "org": "ruled",
+        "amount": 1
+    },
+    {
+        "type": "cluster4",
+        "org": "shock",
+        "amount": 2
+    },
+    {
+        "type": "cluster4",
+        "org": "showed",
+        "amount": 2
+    },
+    {
+        "type": "cluster4",
+        "org": "spell",
+        "amount": 1
+    },
+    {
+        "type": "cluster4",
+        "org": "standard",
+        "amount": 1
+    },
+    {
+        "type": "cluster4",
+        "org": "thomas",
+        "amount": 1
+    },
+    {
+        "type": "cluster4",
+        "org": "turnaround",
+        "amount": 1
+    },
+    {
+        "type": "cluster4",
+        "org": "victory",
+        "amount": 3
+    },
+    {
+        "type": "cluster4",
+        "org": "wednesday",
+        "amount": 1
+    },
+    {
         "type": "cluster5",
-        "org": "penalty",
+        "org": "acres",
+        "amount": 1
+    },
+    {
+        "type": "cluster5",
+        "org": "appearing",
+        "amount": 1
+    },
+    {
+        "type": "cluster5",
+        "org": "asano",
+        "amount": 3
+    },
+    {
+        "type": "cluster5",
+        "org": "bundesliga",
+        "amount": 1
+    },
+    {
+        "type": "cluster5",
+        "org": "clumsily",
+        "amount": 1
+    },
+    {
+        "type": "cluster5",
+        "org": "convert",
+        "amount": 1
+    },
+    {
+        "type": "cluster5",
+        "org": "cruising",
+        "amount": 1
+    },
+    {
+        "type": "cluster5",
+        "org": "cup",
+        "amount": 3
+    },
+    {
+        "type": "cluster5",
+        "org": "dreaming",
+        "amount": 1
+    },
+    {
+        "type": "cluster5",
+        "org": "foothold",
+        "amount": 1
+    },
+    {
+        "type": "cluster5",
+        "org": "free",
+        "amount": 1
+    },
+    {
+        "type": "cluster5",
+        "org": "gave",
+        "amount": 1
+    },
+    {
+        "type": "cluster5",
+        "org": "german",
+        "amount": 3
+    },
+    {
+        "type": "cluster5",
+        "org": "good",
+        "amount": 1
+    },
+    {
+        "type": "cluster5",
+        "org": "hajime",
+        "amount": 1
+    },
+    {
+        "type": "cluster5",
+        "org": "hammering",
+        "amount": 1
+    },
+    {
+        "type": "cluster5",
+        "org": "jamal",
+        "amount": 1
+    },
+    {
+        "type": "cluster5",
+        "org": "ko",
+        "amount": 1
+    },
+    {
+        "type": "cluster5",
+        "org": "korea",
+        "amount": 1
+    },
+    {
+        "type": "cluster5",
+        "org": "late",
+        "amount": 1
+    },
+    {
+        "type": "cluster5",
+        "org": "marked",
+        "amount": 1
+    },
+    {
+        "type": "cluster5",
+        "org": "possession",
+        "amount": 1
+    },
+    {
+        "type": "cluster5",
+        "org": "serge",
+        "amount": 1
+    },
+    {
+        "type": "cluster5",
+        "org": "soccer",
+        "amount": 1
+    },
+    {
+        "type": "cluster5",
+        "org": "spaces",
+        "amount": 1
+    },
+    {
+        "type": "cluster5",
+        "org": "takuma",
+        "amount": 1
+    },
+    {
+        "type": "cluster5",
+        "org": "team",
         "amount": 2
     },
     {
@@ -146,17 +1116,17 @@
     },
     {
         "type": "cluster5",
-        "org": "turned",
+        "org": "unheard",
+        "amount": 1
+    },
+    {
+        "type": "cluster5",
+        "org": "win",
         "amount": 2
     },
     {
         "type": "cluster5",
-        "org": "victory",
-        "amount": 3
-    },
-    {
-        "type": "cluster5",
-        "org": "wanted",
-        "amount": 2
+        "org": "wore",
+        "amount": 1
     }
 ]
