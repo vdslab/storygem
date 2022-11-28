@@ -1,3 +1,4 @@
+import Form from './component/Form'
 import VoronoiTreeMap from './component/VoronoiTreeMap'
 
 //const data = [];
@@ -5,6 +6,7 @@ import VoronoiTreeMap from './component/VoronoiTreeMap'
 const App = () => {
   return (
     <div className="App">
+      <Form/>
       <VoronoiTreeMap/>
     </div>
   );

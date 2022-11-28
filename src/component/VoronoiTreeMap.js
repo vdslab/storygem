@@ -1,4 +1,3 @@
-//import React, { useState } from "react"
 import { hierarchy, range, scaleOrdinal } from "d3";
 import * as d3Collection from 'd3-collection';
 import { voronoiTreemap } from "d3-voronoi-treemap";
@@ -13,8 +12,6 @@ const VoronoiTreeMap = () => {
   const hier = hierarchy({ key: "donation", values: nested }, d => d.values).sum(
     d => +d.amount
   );
-
-  console.log(hier)
 
   let chartSize = 500,
     margin = {
@@ -82,10 +79,16 @@ const VoronoiTreeMap = () => {
               (function (){
                 const list = [];
                 for(let node of allNodes){
-                  console.log(node)
                   let svgText = <div></div>
                   if(node.parent !== null){
-                    svgText = <text x = {node.polygon.site.x} y = {node.polygon.site.y}>{node.data.org}</text>
+                    svgText = <text 
+                                x={node.polygon.site.x} 
+                                y = {node.polygon.site.y}
+                                text-anchor="middle" 
+                                dominant-baseline="central"
+                              >
+                                {node.data.org}
+                              </text>
                   }
                   list.push(
                     <g>
