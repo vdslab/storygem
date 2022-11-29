@@ -13,7 +13,7 @@ const VoronoiTreeMap = (props) => {
     d => +d.amount
   );
 
-  let chartSize = 500,
+  let chartSize = 1000,
     margin = {
       top: 20,
       right: 20,
@@ -54,9 +54,9 @@ const VoronoiTreeMap = (props) => {
     }
   }
 
-  const ellipse = range(100).map(i => [
-    (chartSize * (1 + 0.99 * Math.cos((i / 50) * Math.PI))) / 2,
-    (chartSize * (1 + 0.99 * Math.sin((i / 50) * Math.PI))) / 2
+  const ellipse = range(100).map((item,index) => [
+    (chartSize * (1 + 0.99 * Math.cos((item / 50) * Math.PI))) / 2,
+    (chartSize * (1 + 0.99 * Math.sin((item / 50) * Math.PI))) / 2
   ]);
 
   const _voronoiTreemap = voronoiTreemap().clip(ellipse);
@@ -70,21 +70,21 @@ const VoronoiTreeMap = (props) => {
     .map((d, i) => Object.assign({}, d, { id: i }));
   
   return (
-    <div clientWidth={chartSize}>
-      <svg width={chartSize} height={chartSize}>
-        <g transform={`translate(${margin.left}, ${margin.top})`}>
+    <div className="has-text-centered">
+      <svg width={chartSize+margin.left} height={chartSize+margin.top}>
+        <g>
           <g>
             {
               (function (){
                 const list = [];
                 for(let node of allNodes){
-                  let svgText = <div></div>
+                  let svgText;
                   if(node.parent !== null){
                     svgText = <text 
                                 x={node.polygon.site.x} 
                                 y = {node.polygon.site.y}
-                                text-anchor="middle" 
-                                dominant-baseline="central"
+                                textAnchor="middle" 
+                                dominantBaseline="central"
                               >
                                 {node.data.org}
                               </text>
