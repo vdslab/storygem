@@ -1,12 +1,12 @@
 import { hierarchy, range, scaleOrdinal } from "d3";
 import * as d3Collection from 'd3-collection';
 import { voronoiTreemap } from "d3-voronoi-treemap";
-import data from "../data/einglishNews.json"
+//import defaultData from "../data/einglishNews.json"
 
-const VoronoiTreeMap = () => {
+const VoronoiTreeMap = (props) => {
   const nested = d3Collection.nest()
   .key(d => d.type)
-  .entries(data);
+  .entries(props.data);
 
   //階層の設定
   const hier = hierarchy({ key: "donation", values: nested }, d => d.values).sum(
@@ -21,7 +21,7 @@ const VoronoiTreeMap = () => {
       left: 20
     };
 
-  const donationTypes = [...new Set(data.map(d => d.type))];
+  const donationTypes = [...new Set(props.data.map(d => d.type))];
   const colorScale = scaleOrdinal()
     .domain(donationTypes)
     .range([
@@ -69,7 +69,6 @@ const VoronoiTreeMap = () => {
     .sort((a, b) => b.depth - a.depth)
     .map((d, i) => Object.assign({}, d, { id: i }));
   
-  console.log(allNodes)
   return (
     <div clientWidth={chartSize}>
       <svg width={chartSize} height={chartSize}>
