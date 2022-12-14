@@ -51,12 +51,24 @@ const VoronoiTreeMap = ({ data }) => {
       <svg width={chartSize + margin.left} height={chartSize + margin.top}>
         <g>
           <g>
-            {(function () {
-              const list = [];
-              for (let node of allNodes) {
-                let svgText;
-                if (node.parent !== null) {
-                  svgText = (
+            {allNodes.map((node) => {
+              return (
+                <g key={node.id}>
+                  <path
+                    d={"M" + node.polygon.join("L") + "Z"}
+                    fill={nodeColor[node.data.id]}
+                    stroke={"rgba(255,255,255,0.5)"}
+                  />
+                </g>
+              );
+            })}
+          </g>
+          <g>
+            {allNodes
+              .filter((node) => node.data.word)
+              .map((node) => {
+                return (
+                  <g key={node.id}>
                     <text
                       x={node.polygon.site.x}
                       y={node.polygon.site.y}
@@ -65,21 +77,9 @@ const VoronoiTreeMap = ({ data }) => {
                     >
                       {node.data.word}
                     </text>
-                  );
-                }
-                list.push(
-                  <g>
-                    <path
-                      d={"M" + node.polygon.join("L") + "Z"}
-                      fill={nodeColor[node.data.id]}
-                      stroke={"rgba(255,255,255,0.5)"}
-                    />
-                    {svgText}
-                  </g>,
+                  </g>
                 );
-              }
-              return list;
-            })()}
+              })}
           </g>
         </g>
       </svg>
