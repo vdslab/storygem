@@ -25,12 +25,15 @@ const VoronoiTreeMap = ({ data }) => {
     }
   }
 
+  const chartR = chartSize / 2;
   const yScale = 2;
+  const numberOfSides = 8;
+  const dt = (2 * Math.PI) / numberOfSides;
   const ellipse = d3
-    .range(100)
-    .map((item, index) => [
-      (chartSize * (1 + 0.99 * Math.cos((item / 50) * Math.PI))) / 2,
-      (yScale * chartSize * (1 + 0.99 * Math.sin((item / 50) * Math.PI))) / 2,
+    .range(numberOfSides)
+    .map((item) => [
+      chartR * Math.cos(item * dt),
+      yScale * chartR * Math.sin(item * dt),
     ]);
 
   const _voronoiTreemap = voronoiTreemap().clip(ellipse);
@@ -48,38 +51,45 @@ const VoronoiTreeMap = ({ data }) => {
 
   return (
     <div className="has-text-centered">
-      <svg width={chartSize + margin.left} height={chartSize + margin.top}>
-        <g>
-          <g>
-            {allNodes.map((node) => {
-              return (
-                <g key={node.id}>
-                  <path
-                    d={"M" + node.polygon.join("L") + "Z"}
-                    fill={nodeColor[node.data.id]}
-                    stroke={"rgba(255,255,255,0.5)"}
-                  />
-                </g>
-              );
-            })}
-          </g>
-          <g>
-            {allNodes
-              .filter((node) => node.data.word)
-              .map((node) => {
+      <svg
+        width={chartSize + margin.left + margin.right}
+        height={chartSize + margin.top + margin.bottom}
+      >
+        <g transform={`translate(${margin.left},${margin.top})`}>
+          <g transform={`translate(${chartR},${chartR})`}>
+            <g>
+              {allNodes.map((node) => {
                 return (
                   <g key={node.id}>
-                    <text
-                      x={node.polygon.site.x}
-                      y={node.polygon.site.y}
-                      textAnchor="middle"
-                      dominantBaseline="central"
-                    >
-                      {node.data.word}
-                    </text>
+                    <path
+                      d={"M" + node.polygon.join("L") + "Z"}
+                      fill={nodeColor[node.data.id]}
+                      stroke={"rgba(255,255,255,0.5)"}
+                    />
                   </g>
                 );
               })}
+            </g>
+            <g>
+              {allNodes
+                .filter((node) => node.data.word)
+                .map((node) => {
+                  return (
+                    <g key={node.id}>
+                      <text
+                        x={node.polygon.site.x}
+                        y={node.polygon.site.y}
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                        fontSize="10"
+                        fontWeight="bold"
+                      >
+                        {node.data.word}
+                      </text>
+                    </g>
+                  );
+                })}
+            </g>
           </g>
         </g>
       </svg>
