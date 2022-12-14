@@ -25,16 +25,24 @@ const VoronoiTreeMap = ({ data }) => {
     }
   }
 
+  const yScale = 2;
   const ellipse = d3
     .range(100)
     .map((item, index) => [
       (chartSize * (1 + 0.99 * Math.cos((item / 50) * Math.PI))) / 2,
-      (chartSize * (1 + 0.99 * Math.sin((item / 50) * Math.PI))) / 2,
+      (yScale * chartSize * (1 + 0.99 * Math.sin((item / 50) * Math.PI))) / 2,
     ]);
 
   const _voronoiTreemap = voronoiTreemap().clip(ellipse);
-
   _voronoiTreemap(root);
+  for (const node of root.descendants()) {
+    if (node.polygon.site) {
+      node.polygon.site.y /= yScale;
+    }
+    for (const item of node.polygon) {
+      item[1] /= yScale;
+    }
+  }
 
   const allNodes = root.descendants().sort((a, b) => a.depth - b.depth);
 
