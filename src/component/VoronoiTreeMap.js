@@ -1,74 +1,42 @@
-import { hierarchy, range, scaleOrdinal } from "d3";
-import * as d3Collection from "d3-collection";
+import * as d3 from "d3";
 import { voronoiTreemap } from "d3-voronoi-treemap";
-//import defaultData from "../data/einglishNews.json"
 
-const VoronoiTreeMap = (props) => {
-  const nested = d3Collection
-    .nest()
-    .key((d) => d.type)
-    .entries(props.data);
+const VoronoiTreeMap = ({ data }) => {
+  const stratify = d3.stratify();
+  const root = stratify(data);
+  d3.hierarchy(root);
+  root.sum((d) => d.weight);
 
-  //階層の設定
-  const hier = hierarchy(
-    { key: "donation", values: nested },
-    (d) => d.values
-  ).sum((d) => +d.amount);
-
-  let chartSize = 1000,
-    margin = {
-      top: 20,
-      right: 20,
-      bottom: 20,
-      left: 20,
-    };
-
-  const donationTypes = [...new Set(props.data.map((d) => d.type))];
-  const colorScale = scaleOrdinal()
-    .domain(donationTypes)
-    .range([
-      "#3f0d12",
-      "#a71d31",
-      "#f1f0cc",
-      "#d5bf86",
-      "#8d775f",
-      "#ff8360",
-      "#f4afb4",
-      "#797d81",
-      "#4e6e5d",
-      "#00a7e1",
-    ]);
-
-  const colorHierarchy = (h) => {
-    if (h.depth === 0) {
-      ///階層0なら色なし
-      h.color = "none";
-    } else if (h.depth === 1) {
-      //階層1ならカラースケールから色を設定
-      h.color = colorScale(h.data.key);
-    } else {
-      h.color = h.parent.color;
-    }
-    if (h.children) {
-      //子にも同じ処理を再起的にする
-      h.children.forEach((child) => colorHierarchy(child));
-    }
+  const chartSize = 1000;
+  const margin = {
+    top: 20,
+    right: 20,
+    bottom: 20,
+    left: 20,
   };
 
-  const ellipse = range(100).map((item, index) => [
-    (chartSize * (1 + 0.99 * Math.cos((item / 50) * Math.PI))) / 2,
-    (chartSize * (1 + 0.99 * Math.sin((item / 50) * Math.PI))) / 2,
-  ]);
+  const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+  const nodeColor = {};
+  nodeColor[root.id] = "none";
+  for (const cluster of root.children) {
+    const color = colorScale(cluster.id);
+    for (const node of cluster.descendants()) {
+      nodeColor[node.id] = color;
+    }
+  }
+
+  const ellipse = d3
+    .range(100)
+    .map((item, index) => [
+      (chartSize * (1 + 0.99 * Math.cos((item / 50) * Math.PI))) / 2,
+      (chartSize * (1 + 0.99 * Math.sin((item / 50) * Math.PI))) / 2,
+    ]);
 
   const _voronoiTreemap = voronoiTreemap().clip(ellipse);
 
-  colorHierarchy(hier);
-  _voronoiTreemap(hier);
+  _voronoiTreemap(root);
 
-  const allNodes = hier
-    .descendants()
-    .sort((a, b) => b.depth - a.depth)
-    .map((d, i) => Object.assign({}, d, { id: i }));
+  const allNodes = root.descendants().sort((a, b) => a.depth - b.depth);
 
   return (
     <div className="has-text-centered">
@@ -87,7 +55,7 @@ const VoronoiTreeMap = (props) => {
                       textAnchor="middle"
                       dominantBaseline="central"
                     >
-                      {node.data.org}
+                      {node.data.word}
                     </text>
                   );
                 }
@@ -95,11 +63,11 @@ const VoronoiTreeMap = (props) => {
                   <g>
                     <path
                       d={"M" + node.polygon.join("L") + "Z"}
-                      fill={node.parent ? node.parent.color : node.color}
+                      fill={nodeColor[node.data.id]}
                       stroke={"rgba(255,255,255,0.5)"}
                     />
                     {svgText}
-                  </g>
+                  </g>,
                 );
               }
               return list;
