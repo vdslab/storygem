@@ -5,7 +5,7 @@ const VoronoiTreeMap = ({ data }) => {
   const stratify = d3.stratify();
   const root = stratify(data);
   d3.hierarchy(root);
-  root.sum((d) => d.weight);
+  root.sum((d) => Math.sqrt(d.weight));
 
   const chartSize = 1000;
   const margin = {
