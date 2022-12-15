@@ -36,7 +36,8 @@ const VoronoiTreeMap = ({ data }) => {
       yScale * chartR * Math.sin(item * dt),
     ]);
 
-  const _voronoiTreemap = voronoiTreemap().clip(ellipse);
+  const prng = d3.randomLcg(0);
+  const _voronoiTreemap = voronoiTreemap().clip(ellipse).prng(prng);
   _voronoiTreemap(root);
   for (const node of root.descendants()) {
     if (node.polygon.site) {
