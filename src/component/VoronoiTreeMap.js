@@ -21,7 +21,11 @@ const VoronoiTreeMap = ({ data }) => {
   for (const cluster of root.children) {
     const color = colorScale(cluster.id);
     for (const node of cluster.descendants()) {
-      nodeColor[node.id] = color;
+      if (node.children) {
+        nodeColor[node.id] = "none";
+      } else {
+        nodeColor[node.id] = color;
+      }
     }
   }
 
@@ -48,7 +52,7 @@ const VoronoiTreeMap = ({ data }) => {
     }
   }
 
-  const allNodes = root.descendants().sort((a, b) => a.depth - b.depth);
+  const allNodes = root.descendants().sort((a, b) => b.depth - a.depth);
 
   const fontSize = 10;
   const canvas = document.createElement("canvas");
@@ -70,7 +74,8 @@ const VoronoiTreeMap = ({ data }) => {
                     <path
                       d={"M" + node.polygon.join("L") + "Z"}
                       fill={nodeColor[node.data.id]}
-                      stroke={"rgba(255,255,255,0.5)"}
+                      stroke="#ccc"
+                      strokeWidth={node.height + 1}
                     />
                   </g>
                 );
