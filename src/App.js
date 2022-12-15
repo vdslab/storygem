@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Form from "./component/Form";
 import VoronoiTreeMap from "./component/VoronoiTreeMap";
-import defaultData from "./data/data.json";
+import defaultData from "./data/data-en.json";
 
 const App = () => {
   const [data, setData] = useState(defaultData);
