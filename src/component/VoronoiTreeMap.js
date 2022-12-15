@@ -55,9 +55,10 @@ const VoronoiTreeMap = ({ data }) => {
   const allNodes = root.descendants().sort((a, b) => b.depth - a.depth);
 
   const fontSize = 10;
+  const fontFamily = `'Unbounded'`;
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
-  context.font = `${fontSize}px bold`;
+  context.font = `bold ${fontSize}px ${fontFamily}`;
 
   return (
     <div className="has-text-centered">
@@ -86,8 +87,8 @@ const VoronoiTreeMap = ({ data }) => {
                 .filter((node) => node.data.word)
                 .map((node) => {
                   const [cx, cy] = d3.polygonCentroid(node.polygon);
-                  const { width } = context.measureText(node.data.word);
-                  const r0 = Math.hypot(width / 2, fontSize / 2);
+                  const measure = context.measureText(node.data.word);
+                  const r0 = Math.hypot(measure.width / 2, fontSize / 2);
                   let r = Infinity;
                   for (let i = 0; i < node.polygon.length; ++i) {
                     const [x1, y1] = node.polygon[i];
@@ -106,9 +107,12 @@ const VoronoiTreeMap = ({ data }) => {
                       <text
                         textAnchor="middle"
                         dominantBaseline="central"
-                        fontSize={(fontSize * r) / r0}
+                        fontSize={fontSize}
+                        fontFamily={fontFamily}
                         fontWeight="bold"
-                        transform={`translate(${cx},${cy})rotate(0)`}
+                        transform={`translate(${cx},${cy})rotate(0)scale(${
+                          r / r0
+                        })`}
                       >
                         {node.data.word}
                       </text>
