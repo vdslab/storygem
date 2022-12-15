@@ -26,7 +26,7 @@ const VoronoiTreeMap = ({ data }) => {
   }
 
   const chartR = chartSize / 2;
-  const yScale = 2;
+  const yScale = 1;
   const numberOfSides = 8;
   const dt = (2 * Math.PI) / numberOfSides;
   const ellipse = d3
@@ -48,6 +48,11 @@ const VoronoiTreeMap = ({ data }) => {
   }
 
   const allNodes = root.descendants().sort((a, b) => a.depth - b.depth);
+
+  const fontSize = 10;
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  context.font = `${fontSize}px bold`;
 
   return (
     <div className="has-text-centered">
@@ -74,15 +79,30 @@ const VoronoiTreeMap = ({ data }) => {
               {allNodes
                 .filter((node) => node.data.word)
                 .map((node) => {
+                  const [cx, cy] = d3.polygonCentroid(node.polygon);
+                  const { width } = context.measureText(node.data.word);
+                  const r0 = Math.hypot(width / 2, fontSize / 2);
+                  let r = Infinity;
+                  for (let i = 0; i < node.polygon.length; ++i) {
+                    const [x1, y1] = node.polygon[i];
+                    const [x2, y2] =
+                      node.polygon[(i + 1) % node.polygon.length];
+                    const a = y2 - y1;
+                    const b = x1 - x2;
+                    const c = -(a * x1 + b * y1);
+                    r = Math.min(
+                      r,
+                      Math.abs(a * cx + b * cy + c) / Math.hypot(a, b),
+                    );
+                  }
                   return (
                     <g key={node.id}>
                       <text
-                        x={node.polygon.site.x}
-                        y={node.polygon.site.y}
                         textAnchor="middle"
                         dominantBaseline="central"
-                        fontSize="10"
+                        fontSize={(fontSize * r) / r0}
                         fontWeight="bold"
+                        transform={`translate(${cx},${cy})rotate(0)`}
                       >
                         {node.data.word}
                       </text>
