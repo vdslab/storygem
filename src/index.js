@@ -5,14 +5,25 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 
-document.fonts.load("10px Unbounded").then((args) => {
-  const root = ReactDOM.createRoot(document.getElementById("root"));
-  root.render(
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>,
-  );
-});
+const fonts = [
+  "New Tegomin",
+  "Orbitron",
+  "Oswald",
+  "Pacifico",
+  "Rajdhani",
+  "Unbounded",
+  "Zen Dots",
+];
+Promise.all(fonts.map((font) => document.fonts.load(`10px ${font}`))).then(
+  () => {
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>,
+    );
+  },
+);
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))

@@ -15,7 +15,7 @@ const VoronoiTreeMap = ({ data }) => {
     left: 20,
   };
 
-  const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+  const colorScale = d3.scaleOrdinal(d3.schemeTableau10);
   const nodeColor = {};
   nodeColor[root.id] = "none";
   for (const cluster of root.children) {
@@ -41,7 +41,12 @@ const VoronoiTreeMap = ({ data }) => {
     ]);
 
   const prng = d3.randomLcg(0);
-  const _voronoiTreemap = voronoiTreemap().clip(ellipse).prng(prng);
+  const _voronoiTreemap = voronoiTreemap()
+    .clip(ellipse)
+    .convergenceRatio(0.001)
+    .maxIterationCount(50)
+    .minWeightRatio(0.01)
+    .prng(prng);
   _voronoiTreemap(root);
   for (const node of root.descendants()) {
     if (node.polygon.site) {
@@ -54,11 +59,12 @@ const VoronoiTreeMap = ({ data }) => {
 
   const allNodes = root.descendants().sort((a, b) => b.depth - a.depth);
 
+  const color = "#444";
   const fontSize = 10;
-  const fontFamily = `'Unbounded'`;
+  const fontFamily = "New Tegomin";
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
-  context.font = `bold ${fontSize}px ${fontFamily}`;
+  context.font = `bold ${fontSize}px '${fontFamily}'`;
 
   return (
     <div className="has-text-centered">
@@ -75,7 +81,7 @@ const VoronoiTreeMap = ({ data }) => {
                     <path
                       d={"M" + node.polygon.join("L") + "Z"}
                       fill={nodeColor[node.data.id]}
-                      stroke="#ccc"
+                      stroke={color}
                       strokeWidth={node.height + 1}
                     />
                   </g>
@@ -99,7 +105,7 @@ const VoronoiTreeMap = ({ data }) => {
                     const c = -(a * x1 + b * y1);
                     r = Math.min(
                       r,
-                      Math.abs(a * cx + b * cy + c) / Math.hypot(a, b),
+                      Math.abs(a * cx + b * cy + c) / Math.hypot(a, b) - 2,
                     );
                   }
                   return (
@@ -110,6 +116,7 @@ const VoronoiTreeMap = ({ data }) => {
                         fontSize={fontSize}
                         fontFamily={fontFamily}
                         fontWeight="bold"
+                        fill={color}
                         transform={`translate(${cx},${cy})rotate(0)scale(${
                           r / r0
                         })`}
