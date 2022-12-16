@@ -2,7 +2,7 @@ import { useState } from "react";
 //import Form from "./component/Form";
 import Select from 'react-select'
 import VoronoiTreeMap from "./component/VoronoiTreeMap";
-import defaultData from "./data/VASTData.json";
+import defaultData from "./data/scVis-over149count-data.json";
 
 import infoVisData from "./data/InfoVisData.json";
 import VASTData from "./data/VASTData.json";
