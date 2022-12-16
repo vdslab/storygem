@@ -5,8 +5,8 @@ import VoronoiTreeMap from "./component/VoronoiTreeMap";
 import defaultData from "./data/scVis-over149count-data.json";
 
 import infoVisData from "./data/InfoVisData.json";
-import VASTData from "./data/VASTData.json";
-import scVisData from "./data/scVisData.json";
+import VASTData from "./data/VAST-over99count-data.json";
+import scVisData from "./data/scVis-over149count-data.json";
 
 const options = [
   { value: 'scvis', label: 'scvis' },
