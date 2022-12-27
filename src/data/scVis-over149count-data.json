@@ -1,0 +1,858 @@
+[
+    {
+        "id": "0-0",
+        "parentId": "1-0",
+        "word": "data",
+        "weight": 2384
+    },
+    {
+        "id": "0-1",
+        "parentId": "1-0",
+        "word": "visualization",
+        "weight": 1985
+    },
+    {
+        "id": "0-2",
+        "parentId": "1-1",
+        "word": "use",
+        "weight": 1831
+    },
+    {
+        "id": "0-3",
+        "parentId": "1-0",
+        "word": "technique",
+        "weight": 1128
+    },
+    {
+        "id": "0-4",
+        "parentId": "1-0",
+        "word": "method",
+        "weight": 1124
+    },
+    {
+        "id": "0-5",
+        "parentId": "1-0",
+        "word": "volume",
+        "weight": 941
+    },
+    {
+        "id": "0-6",
+        "parentId": "1-1",
+        "word": "present",
+        "weight": 931
+    },
+    {
+        "id": "0-7",
+        "parentId": "1-0",
+        "word": "surface",
+        "weight": 847
+    },
+    {
+        "id": "0-8",
+        "parentId": "1-0",
+        "word": "algorithm",
+        "weight": 829
+    },
+    {
+        "id": "0-9",
+        "parentId": "1-2",
+        "word": "system",
+        "weight": 794
+    },
+    {
+        "id": "0-10",
+        "parentId": "1-0",
+        "word": "model",
+        "weight": 779
+    },
+    {
+        "id": "0-11",
+        "parentId": "1-2",
+        "word": "field",
+        "weight": 733
+    },
+    {
+        "id": "0-12",
+        "parentId": "1-2",
+        "word": "approach",
+        "weight": 719
+    },
+    {
+        "id": "0-13",
+        "parentId": "1-0",
+        "word": "image",
+        "weight": 667
+    },
+    {
+        "id": "0-14",
+        "parentId": "1-1",
+        "word": "render",
+        "weight": 639
+    },
+    {
+        "id": "0-15",
+        "parentId": "1-1",
+        "word": "result",
+        "weight": 615
+    },
+    {
+        "id": "0-16",
+        "parentId": "1-0",
+        "word": "paper",
+        "weight": 609
+    },
+    {
+        "id": "0-17",
+        "parentId": "1-1",
+        "word": "set",
+        "weight": 605
+    },
+    {
+        "id": "0-18",
+        "parentId": "1-0",
+        "word": "lt",
+        "weight": 601
+    },
+    {
+        "id": "0-19",
+        "parentId": "1-0",
+        "word": "gt",
+        "weight": 599
+    },
+    {
+        "id": "0-20",
+        "parentId": "1-1",
+        "word": "provide",
+        "weight": 530
+    },
+    {
+        "id": "0-21",
+        "parentId": "1-0",
+        "word": "user",
+        "weight": 527
+    },
+    {
+        "id": "0-22",
+        "parentId": "1-2",
+        "word": "base",
+        "weight": 503
+    },
+    {
+        "id": "0-23",
+        "parentId": "1-2",
+        "word": "structure",
+        "weight": 497
+    },
+    {
+        "id": "0-24",
+        "parentId": "1-2",
+        "word": "flow",
+        "weight": 496
+    },
+    {
+        "id": "0-25",
+        "parentId": "1-2",
+        "word": "point",
+        "weight": 483
+    },
+    {
+        "id": "0-26",
+        "parentId": "1-0",
+        "word": "interactive",
+        "weight": 479
+    },
+    {
+        "id": "0-27",
+        "parentId": "1-1",
+        "word": "new",
+        "weight": 479
+    },
+    {
+        "id": "0-28",
+        "parentId": "1-0",
+        "word": "design",
+        "weight": 466
+    },
+    {
+        "id": "0-29",
+        "parentId": "1-1",
+        "word": "feature",
+        "weight": 462
+    },
+    {
+        "id": "0-30",
+        "parentId": "1-1",
+        "word": "describe",
+        "weight": 461
+    },
+    {
+        "id": "0-31",
+        "parentId": "1-1",
+        "word": "allow",
+        "weight": 453
+    },
+    {
+        "id": "0-32",
+        "parentId": "1-0",
+        "word": "visual",
+        "weight": 446
+    },
+    {
+        "id": "0-33",
+        "parentId": "1-0",
+        "word": "information",
+        "weight": 445
+    },
+    {
+        "id": "0-34",
+        "parentId": "1-0",
+        "word": "analysis",
+        "weight": 445
+    },
+    {
+        "id": "0-35",
+        "parentId": "1-2",
+        "word": "time",
+        "weight": 435
+    },
+    {
+        "id": "0-36",
+        "parentId": "1-2",
+        "word": "large",
+        "weight": 419
+    },
+    {
+        "id": "0-37",
+        "parentId": "1-1",
+        "word": "show",
+        "weight": 417
+    },
+    {
+        "id": "0-38",
+        "parentId": "1-0",
+        "word": "function",
+        "weight": 416
+    },
+    {
+        "id": "0-39",
+        "parentId": "1-0",
+        "word": "application",
+        "weight": 413
+    },
+    {
+        "id": "0-40",
+        "parentId": "1-0",
+        "word": "display",
+        "weight": 410
+    },
+    {
+        "id": "0-41",
+        "parentId": "1-1",
+        "word": "mesh",
+        "weight": 405
+    },
+    {
+        "id": "0-42",
+        "parentId": "1-0",
+        "word": "visualize",
+        "weight": 381
+    },
+    {
+        "id": "0-43",
+        "parentId": "1-0",
+        "word": "representation",
+        "weight": 359
+    },
+    {
+        "id": "0-44",
+        "parentId": "1-0",
+        "word": "tool",
+        "weight": 351
+    },
+    {
+        "id": "0-45",
+        "parentId": "1-0",
+        "word": "rendering",
+        "weight": 350
+    },
+    {
+        "id": "0-46",
+        "parentId": "1-0",
+        "word": "simulation",
+        "weight": 346
+    },
+    {
+        "id": "0-47",
+        "parentId": "1-0",
+        "word": "space",
+        "weight": 344
+    },
+    {
+        "id": "0-48",
+        "parentId": "1-1",
+        "word": "different",
+        "weight": 337
+    },
+    {
+        "id": "0-49",
+        "parentId": "1-2",
+        "word": "problem",
+        "weight": 332
+    },
+    {
+        "id": "0-50",
+        "parentId": "1-2",
+        "word": "process",
+        "weight": 331
+    },
+    {
+        "id": "0-51",
+        "parentId": "1-1",
+        "word": "propose",
+        "weight": 331
+    },
+    {
+        "id": "0-52",
+        "parentId": "1-2",
+        "word": "view",
+        "weight": 330
+    },
+    {
+        "id": "0-53",
+        "parentId": "1-1",
+        "word": "apply",
+        "weight": 322
+    },
+    {
+        "id": "0-54",
+        "parentId": "1-0",
+        "word": "object",
+        "weight": 322
+    },
+    {
+        "id": "0-55",
+        "parentId": "1-0",
+        "word": "study",
+        "weight": 317
+    },
+    {
+        "id": "0-56",
+        "parentId": "1-1",
+        "word": "demonstrate",
+        "weight": 313
+    },
+    {
+        "id": "0-57",
+        "parentId": "1-0",
+        "word": "vector",
+        "weight": 310
+    },
+    {
+        "id": "0-58",
+        "parentId": "1-1",
+        "word": "generate",
+        "weight": 301
+    },
+    {
+        "id": "0-59",
+        "parentId": "1-0",
+        "word": "ETX",
+        "weight": 283
+    },
+    {
+        "id": "0-60",
+        "parentId": "1-1",
+        "word": "work",
+        "weight": 282
+    },
+    {
+        "id": "0-61",
+        "parentId": "1-0",
+        "word": "graphic",
+        "weight": 279
+    },
+    {
+        "id": "0-62",
+        "parentId": "1-2",
+        "word": "high",
+        "weight": 275
+    },
+    {
+        "id": "0-63",
+        "parentId": "1-0",
+        "word": "texture",
+        "weight": 274
+    },
+    {
+        "id": "0-64",
+        "parentId": "1-2",
+        "word": "number",
+        "weight": 263
+    },
+    {
+        "id": "0-65",
+        "parentId": "1-1",
+        "word": "introduce",
+        "weight": 259
+    },
+    {
+        "id": "0-66",
+        "parentId": "1-0",
+        "word": "complex",
+        "weight": 259
+    },
+    {
+        "id": "0-67",
+        "parentId": "1-2",
+        "word": "value",
+        "weight": 253
+    },
+    {
+        "id": "0-68",
+        "parentId": "1-1",
+        "word": "make",
+        "weight": 250
+    },
+    {
+        "id": "0-69",
+        "parentId": "1-2",
+        "word": "region",
+        "weight": 248
+    },
+    {
+        "id": "0-70",
+        "parentId": "1-0",
+        "word": "compute",
+        "weight": 245
+    },
+    {
+        "id": "0-71",
+        "parentId": "1-2",
+        "word": "order",
+        "weight": 243
+    },
+    {
+        "id": "0-72",
+        "parentId": "1-1",
+        "word": "develop",
+        "weight": 242
+    },
+    {
+        "id": "0-73",
+        "parentId": "1-1",
+        "word": "give",
+        "weight": 232
+    },
+    {
+        "id": "0-74",
+        "parentId": "1-1",
+        "word": "support",
+        "weight": 228
+    },
+    {
+        "id": "0-75",
+        "parentId": "1-1",
+        "word": "include",
+        "weight": 226
+    },
+    {
+        "id": "0-76",
+        "parentId": "1-0",
+        "word": "tensor",
+        "weight": 225
+    },
+    {
+        "id": "0-77",
+        "parentId": "1-0",
+        "word": "multiple",
+        "weight": 220
+    },
+    {
+        "id": "0-78",
+        "parentId": "1-2",
+        "word": "efficient",
+        "weight": 219
+    },
+    {
+        "id": "0-79",
+        "parentId": "1-2",
+        "word": "quality",
+        "weight": 219
+    },
+    {
+        "id": "0-80",
+        "parentId": "1-0",
+        "word": "grid",
+        "weight": 219
+    },
+    {
+        "id": "0-81",
+        "parentId": "1-0",
+        "word": "scalar",
+        "weight": 218
+    },
+    {
+        "id": "0-82",
+        "parentId": "1-2",
+        "word": "important",
+        "weight": 215
+    },
+    {
+        "id": "0-83",
+        "parentId": "1-0",
+        "word": "spatial",
+        "weight": 214
+    },
+    {
+        "id": "0-84",
+        "parentId": "1-0",
+        "word": "domain",
+        "weight": 214
+    },
+    {
+        "id": "0-85",
+        "parentId": "1-0",
+        "word": "novel",
+        "weight": 213
+    },
+    {
+        "id": "0-86",
+        "parentId": "1-2",
+        "word": "performance",
+        "weight": 211
+    },
+    {
+        "id": "0-87",
+        "parentId": "1-2",
+        "word": "framework",
+        "weight": 211
+    },
+    {
+        "id": "0-88",
+        "parentId": "1-1",
+        "word": "require",
+        "weight": 209
+    },
+    {
+        "id": "0-89",
+        "parentId": "1-0",
+        "word": "map",
+        "weight": 208
+    },
+    {
+        "id": "0-90",
+        "parentId": "1-0",
+        "word": "volumetric",
+        "weight": 205
+    },
+    {
+        "id": "0-91",
+        "parentId": "1-1",
+        "word": "represent",
+        "weight": 203
+    },
+    {
+        "id": "0-92",
+        "parentId": "1-2",
+        "word": "line",
+        "weight": 202
+    },
+    {
+        "id": "0-93",
+        "parentId": "1-0",
+        "word": "color",
+        "weight": 202
+    },
+    {
+        "id": "0-94",
+        "parentId": "1-0",
+        "word": "datasets",
+        "weight": 201
+    },
+    {
+        "id": "0-95",
+        "parentId": "1-1",
+        "word": "produce",
+        "weight": 199
+    },
+    {
+        "id": "0-96",
+        "parentId": "1-2",
+        "word": "case",
+        "weight": 199
+    },
+    {
+        "id": "0-97",
+        "parentId": "1-1",
+        "word": "shape",
+        "weight": 199
+    },
+    {
+        "id": "0-98",
+        "parentId": "1-0",
+        "word": "sample",
+        "weight": 197
+    },
+    {
+        "id": "0-99",
+        "parentId": "1-0",
+        "word": "exploration",
+        "weight": 197
+    },
+    {
+        "id": "0-100",
+        "parentId": "1-0",
+        "word": ">",
+        "weight": 197
+    },
+    {
+        "id": "0-101",
+        "parentId": "1-2",
+        "word": "many",
+        "weight": 191
+    },
+    {
+        "id": "0-102",
+        "parentId": "1-1",
+        "word": "several",
+        "weight": 190
+    },
+    {
+        "id": "0-103",
+        "parentId": "1-2",
+        "word": "scheme",
+        "weight": 187
+    },
+    {
+        "id": "0-104",
+        "parentId": "1-1",
+        "word": "transfer",
+        "weight": 187
+    },
+    {
+        "id": "0-105",
+        "parentId": "1-1",
+        "word": "local",
+        "weight": 185
+    },
+    {
+        "id": "0-106",
+        "parentId": "1-1",
+        "word": "create",
+        "weight": 185
+    },
+    {
+        "id": "0-107",
+        "parentId": "1-1",
+        "word": "explore",
+        "weight": 185
+    },
+    {
+        "id": "0-108",
+        "parentId": "1-2",
+        "word": "dynamic",
+        "weight": 184
+    },
+    {
+        "id": "0-109",
+        "parentId": "1-1",
+        "word": "change",
+        "weight": 183
+    },
+    {
+        "id": "0-110",
+        "parentId": "1-2",
+        "word": "level",
+        "weight": 183
+    },
+    {
+        "id": "0-111",
+        "parentId": "1-2",
+        "word": "task",
+        "weight": 183
+    },
+    {
+        "id": "0-112",
+        "parentId": "1-0",
+        "word": "property",
+        "weight": 182
+    },
+    {
+        "id": "0-113",
+        "parentId": "1-1",
+        "word": "achieve",
+        "weight": 182
+    },
+    {
+        "id": "0-114",
+        "parentId": "1-0",
+        "word": "parameter",
+        "weight": 182
+    },
+    {
+        "id": "0-115",
+        "parentId": "1-0",
+        "word": "particle",
+        "weight": 178
+    },
+    {
+        "id": "0-116",
+        "parentId": "1-2",
+        "word": "environment",
+        "weight": 178
+    },
+    {
+        "id": "0-117",
+        "parentId": "1-1",
+        "word": "discuss",
+        "weight": 176
+    },
+    {
+        "id": "0-118",
+        "parentId": "1-2",
+        "word": "need",
+        "weight": 172
+    },
+    {
+        "id": "0-119",
+        "parentId": "1-0",
+        "word": "scientific",
+        "weight": 171
+    },
+    {
+        "id": "0-120",
+        "parentId": "1-0",
+        "word": "cell",
+        "weight": 171
+    },
+    {
+        "id": "0-121",
+        "parentId": "1-0",
+        "word": "hardware",
+        "weight": 170
+    },
+    {
+        "id": "0-122",
+        "parentId": "1-0",
+        "word": "geometric",
+        "weight": 168
+    },
+    {
+        "id": "0-123",
+        "parentId": "1-1",
+        "word": "exist",
+        "weight": 166
+    },
+    {
+        "id": "0-124",
+        "parentId": "1-1",
+        "word": "reduce",
+        "weight": 164
+    },
+    {
+        "id": "0-125",
+        "parentId": "1-0",
+        "word": "detail",
+        "weight": 164
+    },
+    {
+        "id": "0-126",
+        "parentId": "1-1",
+        "word": "compare",
+        "weight": 163
+    },
+    {
+        "id": "0-127",
+        "parentId": "1-2",
+        "word": "way",
+        "weight": 163
+    },
+    {
+        "id": "0-128",
+        "parentId": "1-1",
+        "word": "enable",
+        "weight": 162
+    },
+    {
+        "id": "0-129",
+        "parentId": "1-1",
+        "word": "define",
+        "weight": 161
+    },
+    {
+        "id": "0-130",
+        "parentId": "1-1",
+        "word": "perform",
+        "weight": 159
+    },
+    {
+        "id": "0-131",
+        "parentId": "1-2",
+        "word": "measure",
+        "weight": 158
+    },
+    {
+        "id": "0-132",
+        "parentId": "1-0",
+        "word": "interface",
+        "weight": 156
+    },
+    {
+        "id": "0-133",
+        "parentId": "1-1",
+        "word": "implementation",
+        "weight": 155
+    },
+    {
+        "id": "0-134",
+        "parentId": "1-0",
+        "word": "geometry",
+        "weight": 154
+    },
+    {
+        "id": "0-135",
+        "parentId": "1-1",
+        "word": "analyze",
+        "weight": 154
+    },
+    {
+        "id": "0-136",
+        "parentId": "1-2",
+        "word": "example",
+        "weight": 153
+    },
+    {
+        "id": "0-137",
+        "parentId": "1-0",
+        "word": "computational",
+        "weight": 153
+    },
+    {
+        "id": "0-138",
+        "parentId": "1-1",
+        "word": "improve",
+        "weight": 151
+    },
+    {
+        "id": "0-139",
+        "parentId": "1-0",
+        "word": "computer",
+        "weight": 149
+    },
+    {
+        "id": "1-0",
+        "parentId": "2-0"
+    },
+    {
+        "id": "1-1",
+        "parentId": "2-0"
+    },
+    {
+        "id": "1-2",
+        "parentId": "2-0"
+    },
+    {
+        "id": "2-0",
+        "parentId": null
+    }
+]
