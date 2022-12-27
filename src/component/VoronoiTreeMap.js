@@ -2,10 +2,14 @@ import * as d3 from "d3";
 import { voronoiTreemap } from "d3-voronoi-treemap";
 
 const VoronoiTreeMap = ({ data }) => {
+  const weightScale = d3
+    .scaleLinear()
+    .domain(d3.extent(data, (d) => d.weight))
+    .range([1, 30]);
   const stratify = d3.stratify();
   const root = stratify(data);
   d3.hierarchy(root);
-  root.sum((d) => Math.sqrt(d.weight));
+  root.sum((d) => weightScale(d.weight));
 
   const chartSize = 1000;
   const margin = {
