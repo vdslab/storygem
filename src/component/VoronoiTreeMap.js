@@ -71,69 +71,75 @@ const VoronoiTreeMap = ({ data }) => {
   context.font = `bold ${fontSize}px '${fontFamily}'`;
 
   return (
-    <div className="has-text-centered">
-      <svg
-        width={chartSize + margin.left + margin.right}
-        height={chartSize + margin.top + margin.bottom}
-      >
-        <g transform={`translate(${margin.left},${margin.top})`}>
-          <g transform={`translate(${chartR},${chartR})`}>
-            <g>
-              {allNodes.map((node) => {
-                return (
-                  <g key={node.id}>
-                    <path
-                      d={"M" + node.polygon.join("L") + "Z"}
-                      fill={nodeColor[node.data.id]}
-                      stroke={color}
-                      strokeWidth={node.height + 1}
-                    />
-                  </g>
-                );
-              })}
-            </g>
-            <g>
-              {allNodes
-                .filter((node) => node.data.word)
-                .map((node) => {
-                  const [cx, cy] = d3.polygonCentroid(node.polygon);
-                  const measure = context.measureText(node.data.word);
-                  const r0 = Math.hypot(measure.width / 2, fontSize / 2);
-                  let r = Infinity;
-                  for (let i = 0; i < node.polygon.length; ++i) {
-                    const [x1, y1] = node.polygon[i];
-                    const [x2, y2] =
-                      node.polygon[(i + 1) % node.polygon.length];
-                    const a = y2 - y1;
-                    const b = x1 - x2;
-                    const c = -(a * x1 + b * y1);
-                    r = Math.min(
-                      r,
-                      Math.abs(a * cx + b * cy + c) / Math.hypot(a, b) - 2,
+    <div className="container">
+      <section className="section">
+        <figure className="image is-square">
+          <svg
+            className="has-ratio"
+            viewBox={`0 0 ${chartSize + margin.left + margin.right} ${
+              chartSize + margin.top + margin.bottom
+            }`}
+          >
+            <g transform={`translate(${margin.left},${margin.top})`}>
+              <g transform={`translate(${chartR},${chartR})`}>
+                <g>
+                  {allNodes.map((node) => {
+                    return (
+                      <g key={node.id}>
+                        <path
+                          d={"M" + node.polygon.join("L") + "Z"}
+                          fill={nodeColor[node.data.id]}
+                          stroke={color}
+                          strokeWidth={node.height + 1}
+                        />
+                      </g>
                     );
-                  }
-                  return (
-                    <g key={node.id}>
-                      <text
-                        textAnchor="middle"
-                        dominantBaseline="central"
-                        fontSize={fontSize}
-                        fontFamily={fontFamily}
-                        fontWeight="bold"
-                        fill={color}
-                        transform={`translate(${cx},${cy})rotate(0)scale(${
-                          r / r0
-                        })`}
-                      >
-                        {node.data.word}
-                      </text>
-                    </g>
-                  );
-                })}
+                  })}
+                </g>
+                <g>
+                  {allNodes
+                    .filter((node) => node.data.word)
+                    .map((node) => {
+                      const [cx, cy] = d3.polygonCentroid(node.polygon);
+                      const measure = context.measureText(node.data.word);
+                      const r0 = Math.hypot(measure.width / 2, fontSize / 2);
+                      let r = Infinity;
+                      for (let i = 0; i < node.polygon.length; ++i) {
+                        const [x1, y1] = node.polygon[i];
+                        const [x2, y2] =
+                          node.polygon[(i + 1) % node.polygon.length];
+                        const a = y2 - y1;
+                        const b = x1 - x2;
+                        const c = -(a * x1 + b * y1);
+                        r = Math.min(
+                          r,
+                          Math.abs(a * cx + b * cy + c) / Math.hypot(a, b) - 2,
+                        );
+                      }
+                      return (
+                        <g key={node.id}>
+                          <text
+                            textAnchor="middle"
+                            dominantBaseline="central"
+                            fontSize={fontSize}
+                            fontFamily={fontFamily}
+                            fontWeight="bold"
+                            fill={color}
+                            transform={`translate(${cx},${cy})rotate(0)scale(${
+                              r / r0
+                            })`}
+                          >
+                            {node.data.word}
+                          </text>
+                        </g>
+                      );
+                    })}
+                </g>
+              </g>
             </g>
-          </g>
-        </g>
-      </svg>
+          </svg>
+        </figure>
+      </section>
     </div>
   );
 };

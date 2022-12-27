@@ -7,8 +7,8 @@ const Form = (props) => {
   const formRef = useRef();
   const [loading, setLoading] = useState(false);
   return (
-    <section className="section">
-      <div className="container">
+    <div className="container">
+      <section className="section">
         <form
           ref={formRef}
           onSubmit={async (event) => {
@@ -106,8 +106,8 @@ const Form = (props) => {
             </div>
           </div>
         </form>
-      </div>
-    </section>
+      </section>
+    </div>
   );
 };
 
