@@ -50,7 +50,7 @@ function getConvexHull(word) {
     p0 = p1;
   } while (p0 !== q[0]);
   return q;
-}
+};
 
 function simplexMethod(c, A, b) {
   const C = c.concat(); // 元の目的関数を保持
@@ -135,61 +135,11 @@ function simplexMethod(c, A, b) {
   );
 
   return { optimalValue, solution };
-}
-
-async function glpktest() {
-  const glpk = await GLPK();
-  const options = {
-    msglev: glpk.GLP_MSG_ALL,
-    presol: true,
-  };
-  const res = glpk.solve(
-    {
-      name: "LP",
-      objective: {
-        direction: glpk.GLP_MAX,
-        name: "obj",
-        vars: [
-          { name: "x1", coef: 3 },
-          { name: "x2", coef: 2 },
-        ],
-      },
-      subjectTo: [
-        {
-          name: "cons1",
-          vars: [
-            { name: "x1", coef: 2.0 },
-            { name: "x2", coef: 2.0 },
-          ],
-          bnds: { type: glpk.GLP_UP, ub: 4.0, lb: 0.0 },
-        },
-        {
-          name: "cons2",
-          vars: [
-            { name: "x1", coef: 2.0 },
-            { name: "x2", coef: 1.0 },
-          ],
-          bnds: { type: glpk.GLP_UP, ub: 10.0, lb: 0.0 },
-        },
-        {
-          name: "cons2",
-          vars: [
-            { name: "x1", coef: 1.0 },
-            { name: "x2", coef: 2.0 },
-          ],
-          bnds: { type: glpk.GLP_FX, ub: 4.0, lb: 4.0 },
-        },
-      ],
-    },
-    options
-  );
-  return res;
-}
+};
 
 //LPを解くときに呼び出す関数
-async function solveLp(obj) {
+async function solveLp(obj,subjectTo) {
   const glpk = await GLPK();
-
   const options = {
     msglev: glpk.GLP_MSG_ALL,
     presol: true,
@@ -198,257 +148,12 @@ async function solveLp(obj) {
     {
       name: "LP",
       objective: obj,
-      subjectTo: [
-        {
-          name: "c1",
-          vars: [
-            { name: "lambda10", coef: 1.0 },
-            { name: "lambda11", coef: 1.0 },
-            { name: "lambda12", coef: 1.0 },
-            { name: "lambda13", coef: 1.0 },
-            { name: "lambda14", coef: 1.0 },
-          ],
-          bnds: { type: glpk.GLP_FX, ub: 1.0, lb: 1.0 },
-        },
-        {
-          name: "c2",
-          vars: [
-            { name: "lambda20", coef: 1.0 },
-            { name: "lambda21", coef: 1.0 },
-            { name: "lambda22", coef: 1.0 },
-            { name: "lambda23", coef: 1.0 },
-            { name: "lambda24", coef: 1.0 },
-          ],
-          bnds: { type: glpk.GLP_FX, ub: 1.0, lb: 1.0 },
-        },
-        {
-          name: "c3",
-          vars: [
-            { name: "lambda30", coef: 1.0 },
-            { name: "lambda31", coef: 1.0 },
-            { name: "lambda32", coef: 1.0 },
-            { name: "lambda33", coef: 1.0 },
-            { name: "lambda34", coef: 1.0 },
-          ],
-          bnds: { type: glpk.GLP_FX, ub: 1.0, lb: 1.0 },
-        },
-        {
-          name: "c4",
-          vars: [
-            { name: "lambda40", coef: 1.0 },
-            { name: "lambda41", coef: 1.0 },
-            { name: "lambda42", coef: 1.0 },
-            { name: "lambda43", coef: 1.0 },
-            { name: "lambda44", coef: 1.0 },
-          ],
-          bnds: { type: glpk.GLP_FX, ub: 1.0, lb: 1.0 },
-        },
-        {
-          name: "c5",
-          vars: [
-            { name: "lambda10", coef: 5034.31803477 },
-            { name: "lambda11", coef: 4534.68779495 },
-            { name: "lambda12", coef: 13273.5973152 },
-            { name: "lambda13", coef: 19537.2376211 },
-            { name: "lambda14", coef: 14786.89979 },
-            { name: "lambda20", coef: -9097.57830641 },
-            { name: "lambda21", coef: -8194.69032842 },
-            { name: "lambda22", coef: -23986.8816687 },
-            { name: "lambda23", coef: -35305.9834363 },
-            { name: "lambda24", coef: -26721.5892638 },
-            { name: "lambda30", coef: 4063.26027164 },
-            { name: "lambda31", coef: 3660.00253347 },
-            { name: "lambda32", coef: 10713.2843535 },
-            { name: "lambda33", coef: 15768.7458152 },
-            { name: "lambda34", coef: 11934.6894738 },
-          ],
-          bnds: { type: glpk.GLP_FX, ub: 0.0, lb: 0.0 },
-        },
-        {
-          name: "c6",
-          vars: [
-            { name: "lambda10", coef: -212.760884798 },
-            { name: "lambda11", coef: -191.645458407 },
-            { name: "lambda12", coef: -560.970182998 },
-            { name: "lambda13", coef: -825.684816508 },
-            { name: "lambda14", coef: -624.925533312 },
-            { name: "lambda20", coef: -3850.49938684 },
-            { name: "lambda21", coef: -3468.35707506 },
-            { name: "lambda22", coef: -10152.3141705 },
-            { name: "lambda23", coef: -14943.0609987 },
-            { name: "lambda24", coef: -11309.7639405 },
-            { name: "lambda40", coef: 4063.26027164 },
-            { name: "lambda41", coef: 3660.00253347 },
-            { name: "lambda42", coef: 10713.2843535 },
-            { name: "lambda43", coef: 15768.7458152 },
-            { name: "lambda44", coef: 11934.6894738 },
-          ],
-          bnds: { type: glpk.GLP_FX, ub: 0.0, lb: 0.0 },
-        },
-        {
-          name: "c7",
-          vars: [
-            { name: "lambda10", coef: -17440.8903556 },
-            { name: "lambda11", coef: -8798.42139668 },
-            { name: "lambda12", coef: -14534.9807751 },
-            { name: "lambda13", coef: -24341.0165313 },
-            { name: "lambda14", coef: -27642.7444192 },
-            { name: "lambda20", coef: 17440.8903556 },
-            { name: "lambda21", coef: 8798.42139668 },
-            { name: "lambda22", coef: 14534.9807751 },
-            { name: "lambda23", coef: 24341.0165313 },
-            { name: "lambda24", coef: 27642.7444192 },
-          ],
-          bnds: { type: glpk.GLP_FX, ub: 0.0, lb: 0.0 },
-        },
-        {
-          name: "c8",
-          vars: [
-            { name: "lambda10", coef: -13455.7637481 },
-            { name: "lambda11", coef: -5208.79816204 },
-            { name: "lambda12", coef: -4027.70541586 },
-            { name: "lambda13", coef: -8875.49271209 },
-            { name: "lambda14", coef: -15937.5507091 },
-            { name: "lambda20", coef: 31.7300501279 },
-            { name: "lambda21", coef: 28.5810054221 },
-            { name: "lambda22", coef: 83.6601711055 },
-            { name: "lambda23", coef: 123.138332699 },
-            { name: "lambda24", coef: 93.1981389201 },
-            { name: "lambda30", coef: 13424.033698 },
-            { name: "lambda31", coef: 5180.21715662 },
-            { name: "lambda32", coef: 3944.04524475 },
-            { name: "lambda33", coef: 8752.35437939 },
-            { name: "lambda34", coef: 15844.3525702 },
-          ],
-          bnds: { type: glpk.GLP_FX, ub: 0.0, lb: 0.0 },
-        },
-        {
-          name: "c9",
-          vars: [
-            { name: "lambda10", coef: -9008.26247929 },
-            { name: "lambda11", coef: -1202.68857928 },
-            { name: "lambda12", coef: 7698.67748114 },
-            { name: "lambda13", coef: 8384.41985379 },
-            { name: "lambda14", coef: -2874.26088049 },
-            { name: "lambda20", coef: -4415.77121868 },
-            { name: "lambda21", coef: -3977.52857733 },
-            { name: "lambda22", coef: -11642.7227259 },
-            { name: "lambda23", coef: -17136.7742332 },
-            { name: "lambda24", coef: -12970.0916897 },
-            { name: "lambda40", coef: 13424.033698 },
-            { name: "lambda41", coef: 5180.21715662 },
-            { name: "lambda42", coef: 3944.04524475 },
-            { name: "lambda43", coef: 8752.35437939 },
-            { name: "lambda44", coef: 15844.3525702 },
-          ],
-          bnds: { type: glpk.GLP_FX, ub: 0.0, lb: 0.0 },
-        },
-        {
-          name: "c10",
-          vars: [{ name: "lambda10", coef: 1.0 }],
-          bnds: { type: glpk.GLP_UP, ub: 1.0, lb: 0.0 },
-        },
-        {
-          name: "c11",
-          vars: [{ name: "lambda11", coef: 1.0 }],
-          bnds: { type: glpk.GLP_UP, ub: 1.0, lb: 0.0 },
-        },
-        {
-          name: "c12",
-          vars: [{ name: "lambda12", coef: 1.0 }],
-          bnds: { type: glpk.GLP_UP, ub: 1.0, lb: 0.0 },
-        },
-        {
-          name: "c13",
-          vars: [{ name: "lambda13", coef: 1.0 }],
-          bnds: { type: glpk.GLP_UP, ub: 1.0, lb: 0.0 },
-        },
-        {
-          name: "c14",
-          vars: [{ name: "lambda14", coef: 1.0 }],
-          bnds: { type: glpk.GLP_UP, ub: 1.0, lb: 0.0 },
-        },
-        {
-          name: "c15",
-          vars: [{ name: "lambda20", coef: 1.0 }],
-          bnds: { type: glpk.GLP_UP, ub: 1.0, lb: 0.0 },
-        },
-        {
-          name: "c16",
-          vars: [{ name: "lambda21", coef: 1.0 }],
-          bnds: { type: glpk.GLP_UP, ub: 1.0, lb: 0.0 },
-        },
-        {
-          name: "c17",
-          vars: [{ name: "lambda22", coef: 1.0 }],
-          bnds: { type: glpk.GLP_UP, ub: 1.0, lb: 0.0 },
-        },
-        {
-          name: "c18",
-          vars: [{ name: "lambda23", coef: 1.0 }],
-          bnds: { type: glpk.GLP_UP, ub: 1.0, lb: 0.0 },
-        },
-        {
-          name: "c19",
-          vars: [{ name: "lambda24", coef: 1.0 }],
-          bnds: { type: glpk.GLP_UP, ub: 1.0, lb: 0.0 },
-        },
-        {
-          name: "c20",
-          vars: [{ name: "lambda30", coef: 1.0 }],
-          bnds: { type: glpk.GLP_UP, ub: 1.0, lb: 0.0 },
-        },
-        {
-          name: "c21",
-          vars: [{ name: "lambda31", coef: 1.0 }],
-          bnds: { type: glpk.GLP_UP, ub: 1.0, lb: 0.0 },
-        },
-        {
-          name: "c22",
-          vars: [{ name: "lambda32", coef: 1.0 }],
-          bnds: { type: glpk.GLP_UP, ub: 1.0, lb: 0.0 },
-        },
-        {
-          name: "c23",
-          vars: [{ name: "lambda33", coef: 1.0 }],
-          bnds: { type: glpk.GLP_UP, ub: 1.0, lb: 0.0 },
-        },
-        {
-          name: "c24",
-          vars: [{ name: "lambda34", coef: 1.0 }],
-          bnds: { type: glpk.GLP_UP, ub: 1.0, lb: 0.0 },
-        },
-        {
-          name: "c25",
-          vars: [{ name: "lambda40", coef: 1.0 }],
-          bnds: { type: glpk.GLP_UP, ub: 1.0, lb: 0.0 },
-        },
-        {
-          name: "c26",
-          vars: [{ name: "lambda41", coef: 1.0 }],
-          bnds: { type: glpk.GLP_UP, ub: 1.0, lb: 0.0 },
-        },
-        {
-          name: "c27",
-          vars: [{ name: "lambda42", coef: 1.0 }],
-          bnds: { type: glpk.GLP_UP, ub: 1.0, lb: 0.0 },
-        },
-        {
-          name: "c28",
-          vars: [{ name: "lambda43", coef: 1.0 }],
-          bnds: { type: glpk.GLP_UP, ub: 1.0, lb: 0.0 },
-        },
-        {
-          name: "c29",
-          vars: [{ name: "lambda44", coef: 1.0 }],
-          bnds: { type: glpk.GLP_UP, ub: 1.0, lb: 0.0 },
-        },
-      ],
+      subjectTo: subjectTo,
     },
     options
   );
   return res;
-}
+};
 
 //目的関数のオブジェクトを作成する関数(makeLpObject)で呼び出す
 function createObjective(outSides, objectiveCoef) {
@@ -467,26 +172,48 @@ function createObjective(outSides, objectiveCoef) {
   }
 
   return objective;
-}
+};
+
+//アフィン変換によって得られる制約を作成する関数(makeLpObject)で呼び出す
+function createAffineConstraint(lambdaNames,lambdaCoefs,consCount){
+  const object = {
+    name: `c${consCount}`,
+    vars: [],
+    bnds: { type: 5, ub: 0.0, lb: 0.0 },
+  };
+  for (let n = 0; n < lambdaNames.length; n++) {
+    for (let m = 0; m < lambdaNames[0].length; m++) {
+      if (lambdaCoefs[n][m] !== 0) {
+        object.vars.push({ name: lambdaNames[n][m], coef: lambdaCoefs[n][m] });
+      }
+    }
+  }
+  if (object.vars.length > 0) {
+    return object;
+  } else{
+    return null;
+  }
+};
 
 //LPソルバーに入れるオブジェクトを作成する関数
 function makeLpObject(px, py, qx, qy) {
   const outSides = px.length;
   const inSides = qx.length;
-
-  const totalLambdaNum = outSides * inSides;
   const objectiveCoef = Array(outSides * 2);
   for (let i = 0; i < objectiveCoef.length; i++) {
     objectiveCoef[i] = i < outSides ? -px[i] : px[i - outSides];
-  }
+  };
 
   const objective = createObjective(outSides, objectiveCoef);
 
+  //制約条件を格納する配列
   const subjectTo = [];
-
   let consCount = 1;
-  const lambdaNames = [];
+  const lambdaNames = Array(inSides);
+
+  //内側の多角形の頂点が外側の多角形の頂点の内部にある制約
   for (let i = 0; i < inSides; i++) {
+    lambdaNames[i] = Array(outSides);
     const object = {
       name: `c${consCount}`,
       vars: [],
@@ -494,18 +221,64 @@ function makeLpObject(px, py, qx, qy) {
     };
 
     for (let j = 0; j < outSides; j++) {
-      lambdaNames.push(`lambda${i + 1}${j}`);
-      object.vars.push({ name: lambdaNames[i * outSides + j], coef: 1.0 });
-    }
+      lambdaNames[i][j] = `lambda${i + 1}${j}`;
+      object.vars.push({ name: lambdaNames[i][j], coef: 1.0 });
+    };
 
     consCount += 1;
     subjectTo.push(object);
-  }
+  };
 
-  console.log(subjectTo);
+  //lambdaの非負制約
+  for (let lambdaiNames of lambdaNames) {
+    for (let lambdaName of lambdaiNames) {
+      const nonNegObj = {
+        name: `c${consCount}`,
+        vars: [{ name: lambdaName, coef: 1.0 }],
+        bnds: { type: 3, ub: 1.0, lb: 0.0 },
+      };
+      consCount += 1;
+      subjectTo.push(nonNegObj);
+    };
+  };
 
-  return objective;
-}
+  //アフィン変換によって得られる制約
+  const diffqX = qx[1] - qx[0];
+  for (let i = 0; i < inSides; i++) {
+    const lambdaCoefX = Array(inSides);
+    const lambdaCoefY = Array(inSides);
+    //lambdaの係数を格納する配列をx,yそれぞれ初期化
+    for (let k = 0; k < inSides; k++) {
+      lambdaCoefX[k] = Array(outSides).fill(0);
+      lambdaCoefY[k] = Array(outSides).fill(0);
+    };
+    for (let j = 0; j < outSides; j++) {
+      //xについてのlambdaの係数を格納
+      lambdaCoefX[i][j] += px[j]*diffqX;
+      lambdaCoefX[0][j] += -px[j] * (qx[1] - qx[i]);
+      lambdaCoefX[1][j] += px[j] * (qx[0] - qx[i]);
+
+      //yについてのlambdaの係数を格納
+      lambdaCoefY[i][j] += py[j]*diffqX;
+      lambdaCoefY[0][j] += -py[j]*diffqX;
+      lambdaCoefY[1][j] += px[j]*(qy[0]-qy[i]);
+      lambdaCoefY[0][j] += px[j]*(qy[i]-qy[0]);
+    };
+
+    const affineConsX = createAffineConstraint(lambdaNames,lambdaCoefX,consCount);
+    if (affineConsX !== null) {
+      consCount += 1;
+      subjectTo.push(affineConsX);
+    };
+    const affineConsY = createAffineConstraint(lambdaNames,lambdaCoefY,consCount);
+    if (affineConsY !== null) {
+      consCount += 1;
+      subjectTo.push(affineConsY);
+    };
+  };
+
+  return [objective,subjectTo];
+};
 
 //LP解から拡大倍率とx,y軸方向に並行移動する値を求める関数
 function culcResizeValue(data, px, py, qx, qy) {
@@ -526,7 +299,7 @@ function culcResizeValue(data, px, py, qx, qy) {
   return [S, dx, dy];
 }
 
-// テストケース
+//テストケース
 //pは周りの多角形の座標
 const p_x = [
   84.71806249273098, 76.3102293785846, 223.3695684469413, 328.77480252306344,
@@ -547,7 +320,8 @@ const q_y = [
 ];
 
 let result;
-await solveLp(makeLpObject(p_x, p_y, q_x, q_y)).then(
+const [objective,subjectTo] = makeLpObject(p_x, p_y, q_x, q_y);
+await solveLp(objective,subjectTo).then(
   (data) => {
     result = data.result;
   },
@@ -558,138 +332,6 @@ await solveLp(makeLpObject(p_x, p_y, q_x, q_y)).then(
 
 const [S, dx, dy] = culcResizeValue(result, p_x, p_y, q_x, q_y);
 console.log(S, dx, dy);
-
-makeLpObject(p_x, p_y, q_x, q_y);
-
-const c1 = []; //目的関数の係数
-const varNum = p_x.length * q_x.length;
-for (let i = 0; i < varNum; i++) {
-  if (i < p_x.length) {
-    c1[i] = -p_x[i];
-  } else if (i < p_x.length * 2) {
-    c1[i] = p_x[i - p_x.length];
-  } else {
-    c1[i] = 0;
-  }
-}
-
-const testA_ineq = [
-  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-  [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
-  [1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [
-    5034.31803477, 4534.68779495, 13273.5973152, 19537.2376211, 14786.89979,
-    -9097.57830641, -8194.69032842, -23986.8816687, -35305.9834363,
-    -26721.5892638, 4063.26027164, 3660.00253347, 10713.2843535, 15768.7458152,
-    11934.6894738, 0, 0, 0, 0, 0,
-  ],
-  [
-    -212.760884798, -191.645458407, -560.970182998, -825.684816508,
-    -624.925533312, -3850.49938684, -3468.35707506, -10152.3141705,
-    -14943.0609987, -11309.7639405, 0, 0, 0, 0, 0, 4063.26027164, 3660.00253347,
-    10713.2843535, 15768.7458152, 11934.6894738,
-  ],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [
-    -17440.8903556, -8798.42139668, -14534.9807751, -24341.0165313,
-    -27642.7444192, 17440.8903556, 8798.42139668, 14534.9807751, 24341.0165313,
-    27642.7444192, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  ],
-  [
-    -13455.7637481, -5208.79816204, -4027.70541586, -8875.49271209,
-    -15937.5507091, 31.7300501279, 28.5810054221, 83.6601711055, 123.138332699,
-    93.1981389201, 13424.033698, 5180.21715662, 3944.04524475, 8752.35437939,
-    15844.3525702, 0, 0, 0, 0, 0,
-  ],
-  [
-    -9008.26247929, -1202.68857928, 7698.67748114, 8384.41985379,
-    -2874.26088049, -4415.77121868, -3977.52857733, -11642.7227259,
-    -17136.7742332, -12970.0916897, 0, 0, 0, 0, 0, 13424.033698, 5180.21715662,
-    3944.04524475, 8752.35437939, 15844.3525702,
-  ],
-  [
-    -5034.31803477, -4534.68779495, -13273.5973152, -19537.2376211,
-    -14786.89979, 9097.57830641, 8194.69032842, 23986.8816687, 35305.9834363,
-    26721.5892638, 4063.26027164, 3660.00253347, 10713.2843535, 15768.7458152,
-    11934.6894738, 0, 0, 0, 0, 0,
-  ],
-  [
-    212.760884798, 191.645458407, 560.970182998, 825.684816508, 624.925533312,
-    3850.49938684, 3468.35707506, 10152.3141705, 14943.0609987, 11309.7639405,
-    0, 0, 0, 0, 0, -4063.26027164, -3660.00253347, -10713.2843535,
-    -15768.7458152, -11934.6894738,
-  ],
-  [
-    17440.8903556, 8798.42139668, 14534.9807751, 24341.0165313, 27642.7444192,
-    -17440.8903556, -8798.42139668, -14534.9807751, -24341.0165313,
-    -27642.7444192, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  ],
-  [
-    13455.7637481, 5208.79816204, 4027.70541586, 8875.49271209, 15937.5507091,
-    -31.7300501279, -28.5810054221, -83.6601711055, -123.138332699,
-    -93.1981389201, -13424.033698, -5180.21715662, -3944.04524475,
-    -8752.35437939, -15844.3525702, 0, 0, 0, 0, 0,
-  ],
-  [
-    9008.26247929, 1202.68857928, -7698.67748114, -8384.41985379, 2874.26088049,
-    4415.77121868, 3977.52857733, 11642.7227259, 17136.7742332, 12970.0916897,
-    0, 0, 0, 0, 0, -13424.033698, -5180.21715662, -3944.04524475,
-    -8752.35437939, -15844.3525702,
-  ],
-];
-
-const testb_ineq = [
-  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0,
-];
-
-const test_result = simplexMethod(c1, testA_ineq, testb_ineq);
-//const test_result = simplexMethod([-4,4],[[4,-1],[2,2],[3,-1],[-3,1],[-1,0],[0,-1]],[15,40,8,-8,0,0]);
-//console.log("Test Optimal Value:", test_result.optimalValue,test_result.solution);
 
 const VoronoiTreeMap = ({ data }) => {
   const weightScale = d3
