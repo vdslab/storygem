@@ -1,17 +1,17 @@
 import * as d3 from "d3";
 import { voronoiTreemap } from "d3-voronoi-treemap";
-import GLPK from "glpk.js";
+import GLPK from "glpk.js"; 
 
-function getConvexHull(word) {
-  const fontSize = 48;
+//フォントも引数に
+
+function getConvexHull(word, fontName) {
+  const fontSize = 10;
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
-  ctx.textBaseline = "top";
-  ctx.font = `bold ${fontSize}px serif`;
   canvas.width = ctx.measureText(word).width;
   canvas.height = fontSize;
   ctx.textBaseline = "top";
-  ctx.font = `bold ${fontSize}px serif`;
+  ctx.font = `bold ${fontSize}px '${fontName}'`;
   ctx.fillText(word, 0, 0);
   const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
@@ -52,91 +52,16 @@ function getConvexHull(word) {
   return q;
 };
 
-function simplexMethod(c, A, b) {
-  const C = c.concat(); // 元の目的関数を保持
-  const m = A.length; // 制約条件の本数
-  const n = A[0].length; // 変数の数
-
-  // スラック変数を導入して標準形に変換
-  for (let i = 0; i < m; i++) {
-    for (let j = 0; j < m; j++) {
-      if (i === j) {
-        A[i].push(1);
-      } else {
-        A[i].push(0);
-      }
-    }
+//getConvexHullで得た単語の凸包を多角形の頂点の座標に変換する関数
+function convert2DArrayTo1DArray(array2D) {
+  const arrayX = [];
+  const arrayY = [];
+  for (let i = 0; i < array2D.length; i++) {
+    arrayX.push(array2D[i][0]);
+    arrayY.push(array2D[i][1]);
   }
-
-  const basis = []; // 基底
-  for (let i = 0; i < m; i++) {
-    basis[i] = n + i; // 最初の基底解をスラック変数にする
-  }
-
-  for (let i = 0; i < m; i++) {
-    c.push(0); // 目的関数にスラック変数の係数を追加
-  }
-
-  while (true) {
-    // 目的関数の最大値を探す
-    const entering = c.findIndex((value, index) => index < n && value > 0);
-
-    if (entering === -1) {
-      break;
-    }
-
-    const minRatios = []; //最小比率
-    for (let i = 0; i < m; i++) {
-      if (A[i][entering] > 0) {
-        // 入れ替えられそうなら入れ替える
-        minRatios.push(b[i] / A[i][entering]);
-      } else {
-        minRatios.push(Infinity);
-      }
-    }
-
-    const leaving = minRatios.indexOf(Math.min(...minRatios));
-
-    // 主変数を更新
-    basis[leaving] = entering;
-
-    const pivot = A[leaving][entering];
-    for (let j = 0; j < n + m; j++) {
-      A[leaving][j] /= pivot;
-    }
-    b[leaving] /= pivot;
-
-    for (let i = 0; i < m; i++) {
-      if (i !== leaving) {
-        const factor = A[i][entering];
-        for (let j = 0; j < n + m; j++) {
-          A[i][j] -= factor * A[leaving][j];
-        }
-        b[i] -= factor * b[leaving];
-      }
-    }
-
-    const factor = c[entering];
-    for (let j = 0; j < n + m; j++) {
-      c[j] -= factor * A[leaving][j];
-    }
-  }
-
-  const solution = new Array(n).fill(0);
-  for (let i = 0; i < m; i++) {
-    if (basis[i] < n) {
-      solution[basis[i]] = b[i];
-    }
-  }
-
-  const optimalValue = C.slice(-m).reduce(
-    (acc, val, i) => acc + val * solution[i],
-    0
-  );
-
-  return { optimalValue, solution };
-};
-
+  return [arrayX, arrayY];
+}
 //LPを解くときに呼び出す関数
 async function solveLp(obj,subjectTo) {
   const glpk = await GLPK();
@@ -281,7 +206,7 @@ function makeLpObject(px, py, qx, qy) {
 };
 
 //LP解から拡大倍率とx,y軸方向に並行移動する値を求める関数
-function culcResizeValue(data, px, py, qx, qy) {
+function calcResizeValue(data, px, py, qx, qy) {
   const vars = data.vars;
   let resizeX = [0, 0],
     resizeY = [0, 0];
@@ -296,7 +221,7 @@ function culcResizeValue(data, px, py, qx, qy) {
   const S = (qx[1] - qx[0]) / (resizeX[1] - resizeX[0]);
   const dx = qx[0] - S * resizeX[0];
   const dy = qy[0] - S * resizeY[0];
-  return [S, dx, dy];
+  return [1/S, -dx, -dy];
 }
 
 //テストケース
@@ -319,19 +244,7 @@ const q_y = [
   200.23112133304835, 152.81671477805406, 199.8565843194025, 252.35425881702227,
 ];
 
-let result;
-const [objective,subjectTo] = makeLpObject(p_x, p_y, q_x, q_y);
-await solveLp(objective,subjectTo).then(
-  (data) => {
-    result = data.result;
-  },
-  (err) => {
-    result = err.result;
-  }
-);
-
-const [S, dx, dy] = culcResizeValue(result, p_x, p_y, q_x, q_y);
-console.log(S, dx, dy);
+//console.log(S, dx, dy);
 
 const VoronoiTreeMap = ({ data }) => {
   const weightScale = d3
@@ -387,7 +300,6 @@ const VoronoiTreeMap = ({ data }) => {
   for (const node of root.descendants()) {
     if (node.polygon.site) {
       node.polygon.site.y /= yScale;
-      //console.log(node.data.word,node.polygon);
     }
     for (const item of node.polygon) {
       item[1] /= yScale;
@@ -450,8 +362,31 @@ const VoronoiTreeMap = ({ data }) => {
                         );
                       }
 
-                      let q = getConvexHull(node.data.word);
-                      console.log(node.data.word, q);
+                      const [qx,qy] = convert2DArrayTo1DArray(getConvexHull(node.data.word,fontFamily));
+                      const [px,py] = convert2DArrayTo1DArray(node.polygon);
+                      console.log(node.data.word,px,py, qx, qy);
+
+                      let result;
+                      const [objective, subjectTo] = makeLpObject(
+                        px,
+                        py,
+                        qx,
+                        qy
+                      );
+                      console.log(solveLp(objective,subjectTo));
+                      solveLp(objective,subjectTo).then(
+                        (data) => {
+                          console.log("success");
+                          console.log(data.result);
+                          result = data.result;
+                        },
+                        (err) => {
+                          console.log("error");
+                        }
+                      );
+                      console.log("result:",result);
+
+                      const [S, dx, dy] = calcResizeValue(result, p_x, p_y, q_x, q_y);
 
                       return (
                         <g key={node.id}>
@@ -462,8 +397,8 @@ const VoronoiTreeMap = ({ data }) => {
                             fontFamily={fontFamily}
                             fontWeight="bold"
                             fill={color}
-                            transform={`translate(${cx},${cy})rotate(0)scale(${
-                              (r / r0) * 1.1
+                            transform={`translate(${dx},${dy})rotate(0)scale(${
+                              S
                             })`}
                           >
                             {node.data.word}
