@@ -177,7 +177,7 @@ function makeLpObject(px, py, qx, qy) {
     const affineConsX = createAffineConstraint(
       lambdaNames,
       lambdaCoefX,
-      consCount
+      consCount,
     );
     if (affineConsX !== null) {
       consCount += 1;
@@ -186,7 +186,7 @@ function makeLpObject(px, py, qx, qy) {
     const affineConsY = createAffineConstraint(
       lambdaNames,
       lambdaCoefY,
-      consCount
+      consCount,
     );
     if (affineConsY !== null) {
       consCount += 1;
@@ -258,7 +258,7 @@ const RenderingText = ({ node, context, fontSize, fontName, color }) => {
     }
 
     const [qx, qy] = convert2DArrayTo1DArray(
-      getConvexHull(node.data.word, fontName)
+      getConvexHull(node.data.word, fontName),
     );
     const [px, py] = convert2DArrayTo1DArray(node.polygon);
     console.log(p_x, p_y, q_x, q_y);
@@ -275,7 +275,7 @@ const RenderingText = ({ node, context, fontSize, fontName, color }) => {
           objective: objective,
           subjectTo: subjectTo,
         },
-        options
+        options,
       );
       return res;
     };
@@ -290,7 +290,7 @@ const RenderingText = ({ node, context, fontSize, fontName, color }) => {
           p_x,
           p_y,
           q_x,
-          q_y
+          q_y,
         );
         //console.log(stateS, statedx, statedy);
         setS(stateS);
@@ -300,7 +300,7 @@ const RenderingText = ({ node, context, fontSize, fontName, color }) => {
       (err) => {
         console.log("error");
         result = null;
-      }
+      },
     );
   }, []);
   return (
