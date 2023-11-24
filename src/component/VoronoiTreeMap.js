@@ -1,9 +1,10 @@
 import * as d3 from "d3";
+//import { set } from "d3-collection";
 import { voronoiTreemap } from "d3-voronoi-treemap";
-import GLPK from "glpk.js"; 
+import GLPK from "glpk.js";
+import { useEffect, useState } from "react";
 
-//フォントも引数に
-
+//単語の凸包を求める関数
 function getConvexHull(word, fontName) {
   const fontSize = 10;
   const canvas = document.createElement("canvas");
@@ -50,7 +51,7 @@ function getConvexHull(word, fontName) {
     p0 = p1;
   } while (p0 !== q[0]);
   return q;
-};
+}
 
 //getConvexHullで得た単語の凸包を多角形の頂点の座標に変換する関数
 function convert2DArrayTo1DArray(array2D) {
@@ -62,23 +63,6 @@ function convert2DArrayTo1DArray(array2D) {
   }
   return [arrayX, arrayY];
 }
-//LPを解くときに呼び出す関数
-async function solveLp(obj,subjectTo) {
-  const glpk = await GLPK();
-  const options = {
-    msglev: glpk.GLP_MSG_ALL,
-    presol: true,
-  };
-  const res = glpk.solve(
-    {
-      name: "LP",
-      objective: obj,
-      subjectTo: subjectTo,
-    },
-    options
-  );
-  return res;
-};
 
 //目的関数のオブジェクトを作成する関数(makeLpObject)で呼び出す
 function createObjective(outSides, objectiveCoef) {
@@ -97,10 +81,10 @@ function createObjective(outSides, objectiveCoef) {
   }
 
   return objective;
-};
+}
 
 //アフィン変換によって得られる制約を作成する関数(makeLpObject)で呼び出す
-function createAffineConstraint(lambdaNames,lambdaCoefs,consCount){
+function createAffineConstraint(lambdaNames, lambdaCoefs, consCount) {
   const object = {
     name: `c${consCount}`,
     vars: [],
@@ -115,10 +99,10 @@ function createAffineConstraint(lambdaNames,lambdaCoefs,consCount){
   }
   if (object.vars.length > 0) {
     return object;
-  } else{
+  } else {
     return null;
   }
-};
+}
 
 //LPソルバーに入れるオブジェクトを作成する関数
 function makeLpObject(px, py, qx, qy) {
@@ -127,7 +111,7 @@ function makeLpObject(px, py, qx, qy) {
   const objectiveCoef = Array(outSides * 2);
   for (let i = 0; i < objectiveCoef.length; i++) {
     objectiveCoef[i] = i < outSides ? -px[i] : px[i - outSides];
-  };
+  }
 
   const objective = createObjective(outSides, objectiveCoef);
 
@@ -148,11 +132,11 @@ function makeLpObject(px, py, qx, qy) {
     for (let j = 0; j < outSides; j++) {
       lambdaNames[i][j] = `lambda${i + 1}${j}`;
       object.vars.push({ name: lambdaNames[i][j], coef: 1.0 });
-    };
+    }
 
     consCount += 1;
     subjectTo.push(object);
-  };
+  }
 
   //lambdaの非負制約
   for (let lambdaiNames of lambdaNames) {
@@ -164,8 +148,8 @@ function makeLpObject(px, py, qx, qy) {
       };
       consCount += 1;
       subjectTo.push(nonNegObj);
-    };
-  };
+    }
+  }
 
   //アフィン変換によって得られる制約
   const diffqX = qx[1] - qx[0];
@@ -176,34 +160,42 @@ function makeLpObject(px, py, qx, qy) {
     for (let k = 0; k < inSides; k++) {
       lambdaCoefX[k] = Array(outSides).fill(0);
       lambdaCoefY[k] = Array(outSides).fill(0);
-    };
+    }
     for (let j = 0; j < outSides; j++) {
       //xについてのlambdaの係数を格納
-      lambdaCoefX[i][j] += px[j]*diffqX;
+      lambdaCoefX[i][j] += px[j] * diffqX;
       lambdaCoefX[0][j] += -px[j] * (qx[1] - qx[i]);
       lambdaCoefX[1][j] += px[j] * (qx[0] - qx[i]);
 
       //yについてのlambdaの係数を格納
-      lambdaCoefY[i][j] += py[j]*diffqX;
-      lambdaCoefY[0][j] += -py[j]*diffqX;
-      lambdaCoefY[1][j] += px[j]*(qy[0]-qy[i]);
-      lambdaCoefY[0][j] += px[j]*(qy[i]-qy[0]);
-    };
+      lambdaCoefY[i][j] += py[j] * diffqX;
+      lambdaCoefY[0][j] += -py[j] * diffqX;
+      lambdaCoefY[1][j] += px[j] * (qy[0] - qy[i]);
+      lambdaCoefY[0][j] += px[j] * (qy[i] - qy[0]);
+    }
 
-    const affineConsX = createAffineConstraint(lambdaNames,lambdaCoefX,consCount);
+    const affineConsX = createAffineConstraint(
+      lambdaNames,
+      lambdaCoefX,
+      consCount
+    );
     if (affineConsX !== null) {
       consCount += 1;
       subjectTo.push(affineConsX);
-    };
-    const affineConsY = createAffineConstraint(lambdaNames,lambdaCoefY,consCount);
+    }
+    const affineConsY = createAffineConstraint(
+      lambdaNames,
+      lambdaCoefY,
+      consCount
+    );
     if (affineConsY !== null) {
       consCount += 1;
       subjectTo.push(affineConsY);
-    };
-  };
+    }
+  }
 
-  return [objective,subjectTo];
-};
+  return [objective, subjectTo];
+}
 
 //LP解から拡大倍率とx,y軸方向に並行移動する値を求める関数
 function calcResizeValue(data, px, py, qx, qy) {
@@ -221,7 +213,7 @@ function calcResizeValue(data, px, py, qx, qy) {
   const S = (qx[1] - qx[0]) / (resizeX[1] - resizeX[0]);
   const dx = qx[0] - S * resizeX[0];
   const dy = qy[0] - S * resizeY[0];
-  return [1/S, -dx, -dy];
+  return [1 / S, -dx, -dy];
 }
 
 //テストケース
@@ -247,6 +239,49 @@ const q_y = [
 //console.log(S, dx, dy);
 
 const VoronoiTreeMap = ({ data }) => {
+  const [px, setPx] = useState([]);
+  const [py, setPy] = useState([]);
+  const [qx, setQx] = useState([]);
+  const [qy, setQy] = useState([]);
+  const [S, setS] = useState(0);
+  const [dx, setDx] = useState(0);
+  const [dy, setDy] = useState(0);
+
+  useEffect(() => {
+    const [objective, subjectTo] = makeLpObject(px, py, qx, qy);
+    const solveLp = async () => {
+      const glpk = await GLPK();
+      const options = {
+        msglev: glpk.GLP_MSG_ALL,
+        presol: true,
+      };
+      const res = glpk.solve(
+        {
+          name: "LP",
+          objective: objective,
+          subjectTo: subjectTo,
+        },
+        options
+      );
+      return res;
+    };
+    let result;
+    solveLp(objective, subjectTo).then(
+      (data) => {
+        console.log("success");
+        result = data.result;
+      },
+      (err) => {
+        console.log("error");
+        result = null;
+      }
+    );
+    const [stateS, statedx, statedy] = calcResizeValue(result, p_x, p_y, q_x, q_y);
+    setS(stateS);
+    setDx(statedx);
+    setDy(statedy);
+  },[]);
+
   const weightScale = d3
     .scaleLinear()
     .domain(d3.extent(data, (d) => d.weight))
@@ -362,32 +397,15 @@ const VoronoiTreeMap = ({ data }) => {
                         );
                       }
 
-                      const [qx,qy] = convert2DArrayTo1DArray(getConvexHull(node.data.word,fontFamily));
-                      const [px,py] = convert2DArrayTo1DArray(node.polygon);
-                      console.log(node.data.word,px,py, qx, qy);
-
-                      let result;
-                      const [objective, subjectTo] = makeLpObject(
-                        px,
-                        py,
-                        qx,
-                        qy
+                      const [q_x, q_y] = convert2DArrayTo1DArray(
+                        getConvexHull(node.data.word, fontFamily)
                       );
-                      console.log(solveLp(objective,subjectTo));
-                      solveLp(objective,subjectTo).then(
-                        (data) => {
-                          console.log("success");
-                          console.log(data.result);
-                          result = data.result;
-                        },
-                        (err) => {
-                          console.log("error");
-                        }
-                      );
-                      console.log("result:",result);
-
-                      const [S, dx, dy] = calcResizeValue(result, p_x, p_y, q_x, q_y);
-
+                      const [p_x, p_y] = convert2DArrayTo1DArray(node.polygon);
+                      setPx(p_x);
+                      setPy(p_y);
+                      setQx(q_x);
+                      setQy(q_y);
+                      //console.log(node.data.word, px, py, qx, qy);
                       return (
                         <g key={node.id}>
                           <text
@@ -397,9 +415,7 @@ const VoronoiTreeMap = ({ data }) => {
                             fontFamily={fontFamily}
                             fontWeight="bold"
                             fill={color}
-                            transform={`translate(${dx},${dy})rotate(0)scale(${
-                              S
-                            })`}
+                            transform={`translate(${cx+dx},${cy+dy})rotate(0)scale(${r/r0*S})`}
                           >
                             {node.data.word}
                           </text>
