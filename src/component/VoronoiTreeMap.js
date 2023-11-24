@@ -5,10 +5,10 @@ import GLPK from "glpk.js";
 import { useEffect, useState } from "react";
 
 //単語の凸包を求める関数
-function getConvexHull(word, fontName) {
-  const fontSize = 10;
+function getConvexHull(word, fontName, fontSize) {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
+  ctx.font = `bold ${fontSize}px '${fontName}'`;
   canvas.width = ctx.measureText(word).width;
   canvas.height = fontSize;
   ctx.textBaseline = "top";
@@ -210,7 +210,9 @@ function calcResizeValue(data, px, py, qx, qy) {
     resizeY[0] += vars[lambdaName1] * py[i];
     resizeY[1] += vars[lambdaName2] * py[i];
   }
-  const S = (qx[1] - qx[0]) / (resizeX[1] - resizeX[0]);
+  const S =
+    Math.hypot(qx[1] - qx[0], qy[1] - qy[0]) /
+    Math.hypot(resizeX[1] - resizeX[0], resizeY[1] - resizeY[0]);
   const dx = qx[0] - S * resizeX[0];
   const dy = qy[0] - S * resizeY[0];
   return [1 / S, -dx, -dy];
@@ -238,27 +240,14 @@ const q_y = [
 
 //console.log(S, dx, dy);
 
-const RenderingText = ({ node, context, fontSize, fontName, color }) => {
+const RenderingText = ({ node, fontSize, fontName, color }) => {
   const [S, setS] = useState(0);
   const [dx, setDx] = useState(0);
   const [dy, setDy] = useState(0);
 
   useEffect(() => {
-    const [cx, cy] = d3.polygonCentroid(node.polygon);
-    const measure = context.measureText(node.data.word);
-    const r0 = Math.hypot(measure.width / 2, fontSize / 2);
-    let r = Infinity;
-    for (let i = 0; i < node.polygon.length; ++i) {
-      const [x1, y1] = node.polygon[i];
-      const [x2, y2] = node.polygon[(i + 1) % node.polygon.length];
-      const a = y2 - y1;
-      const b = x1 - x2;
-      const c = -(a * x1 + b * y1);
-      r = Math.min(r, Math.abs(a * cx + b * cy + c) / Math.hypot(a, b) - 2);
-    }
-
     const [qx, qy] = convert2DArrayTo1DArray(
-      getConvexHull(node.data.word, fontName),
+      getConvexHull(node.data.word, fontName, fontSize),
     );
     const [px, py] = convert2DArrayTo1DArray(node.polygon);
     console.log(p_x, p_y, q_x, q_y);
@@ -385,9 +374,6 @@ const VoronoiTreeMap = ({ data }) => {
   const color = "#444";
   const fontSize = 10;
   const fontFamily = "New Tegomin";
-  const canvas = document.createElement("canvas");
-  const context = canvas.getContext("2d");
-  context.font = `bold ${fontSize}px '${fontFamily}'`;
 
   return (
     <div className="container">
@@ -422,7 +408,6 @@ const VoronoiTreeMap = ({ data }) => {
                       return (
                         <RenderingText
                           node={node}
-                          context={context}
                           fontSize={fontSize}
                           fontName={fontFamily}
                           color={color}
