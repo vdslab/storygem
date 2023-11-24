@@ -238,16 +238,30 @@ const q_y = [
 
 //console.log(S, dx, dy);
 
-const VoronoiTreeMap = ({ data }) => {
-  const [px, setPx] = useState([]);
-  const [py, setPy] = useState([]);
-  const [qx, setQx] = useState([]);
-  const [qy, setQy] = useState([]);
+const RenderingText = ({ node, context, fontSize, fontName, color }) => {
   const [S, setS] = useState(0);
   const [dx, setDx] = useState(0);
   const [dy, setDy] = useState(0);
 
   useEffect(() => {
+    const [cx, cy] = d3.polygonCentroid(node.polygon);
+    const measure = context.measureText(node.data.word);
+    const r0 = Math.hypot(measure.width / 2, fontSize / 2);
+    let r = Infinity;
+    for (let i = 0; i < node.polygon.length; ++i) {
+      const [x1, y1] = node.polygon[i];
+      const [x2, y2] = node.polygon[(i + 1) % node.polygon.length];
+      const a = y2 - y1;
+      const b = x1 - x2;
+      const c = -(a * x1 + b * y1);
+      r = Math.min(r, Math.abs(a * cx + b * cy + c) / Math.hypot(a, b) - 2);
+    }
+
+    const [qx, qy] = convert2DArrayTo1DArray(
+      getConvexHull(node.data.word, fontName)
+    );
+    const [px, py] = convert2DArrayTo1DArray(node.polygon);
+    console.log(p_x, p_y, q_x, q_y);
     const [objective, subjectTo] = makeLpObject(px, py, qx, qy);
     const solveLp = async () => {
       const glpk = await GLPK();
@@ -270,18 +284,43 @@ const VoronoiTreeMap = ({ data }) => {
       (data) => {
         console.log("success");
         result = data.result;
+        //console.log(result);
+        const [stateS, statedx, statedy] = calcResizeValue(
+          result,
+          p_x,
+          p_y,
+          q_x,
+          q_y
+        );
+        //console.log(stateS, statedx, statedy);
+        setS(stateS);
+        setDx(statedx);
+        setDy(statedy);
       },
       (err) => {
         console.log("error");
         result = null;
       }
     );
-    const [stateS, statedx, statedy] = calcResizeValue(result, p_x, p_y, q_x, q_y);
-    setS(stateS);
-    setDx(statedx);
-    setDy(statedy);
-  },[]);
+  }, []);
+  return (
+    <g key={node.id}>
+      <text
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize={fontSize}
+        fontFamily={fontName}
+        fontWeight="bold"
+        fill={color}
+        transform={`translate(${dx},${dy})rotate(0)scale(${S})`}
+      >
+        {node.data.word}
+      </text>
+    </g>
+  );
+};
 
+const VoronoiTreeMap = ({ data }) => {
   const weightScale = d3
     .scaleLinear()
     .domain(d3.extent(data, (d) => d.weight))
@@ -380,46 +419,14 @@ const VoronoiTreeMap = ({ data }) => {
                   {allNodes
                     .filter((node) => node.data.word)
                     .map((node) => {
-                      const [cx, cy] = d3.polygonCentroid(node.polygon);
-                      const measure = context.measureText(node.data.word);
-                      const r0 = Math.hypot(measure.width / 2, fontSize / 2);
-                      let r = Infinity;
-                      for (let i = 0; i < node.polygon.length; ++i) {
-                        const [x1, y1] = node.polygon[i];
-                        const [x2, y2] =
-                          node.polygon[(i + 1) % node.polygon.length];
-                        const a = y2 - y1;
-                        const b = x1 - x2;
-                        const c = -(a * x1 + b * y1);
-                        r = Math.min(
-                          r,
-                          Math.abs(a * cx + b * cy + c) / Math.hypot(a, b) - 2
-                        );
-                      }
-
-                      const [q_x, q_y] = convert2DArrayTo1DArray(
-                        getConvexHull(node.data.word, fontFamily)
-                      );
-                      const [p_x, p_y] = convert2DArrayTo1DArray(node.polygon);
-                      setPx(p_x);
-                      setPy(p_y);
-                      setQx(q_x);
-                      setQy(q_y);
-                      //console.log(node.data.word, px, py, qx, qy);
                       return (
-                        <g key={node.id}>
-                          <text
-                            textAnchor="middle"
-                            dominantBaseline="central"
-                            fontSize={fontSize}
-                            fontFamily={fontFamily}
-                            fontWeight="bold"
-                            fill={color}
-                            transform={`translate(${cx+dx},${cy+dy})rotate(0)scale(${r/r0*S})`}
-                          >
-                            {node.data.word}
-                          </text>
-                        </g>
+                        <RenderingText
+                          node={node}
+                          context={context}
+                          fontSize={fontSize}
+                          fontName={fontFamily}
+                          color={color}
+                        />
                       );
                     })}
                 </g>
