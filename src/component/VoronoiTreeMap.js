@@ -64,6 +64,55 @@ function convert2DArrayTo1DArray(array2D) {
   return [arrayX, arrayY];
 }
 
+//多角形の座標を時計回りにソートする関数
+function sortVerticesClockwise(vertice) {
+  const vertices = vertice.concat();
+  let leftMost = vertices[0];
+  let leftMostIndex = 0;
+  for (let i = 1; i < vertices.length; i++) {
+    if (vertices[i][0] < leftMost[0]) {
+      leftMost = vertices[i];
+      leftMostIndex = i;
+    } else if (vertices[i][0] === leftMost[0] && vertices[i][1] < leftMost[1]) {
+      leftMost = vertices[i];
+      leftMostIndex = i;
+    }
+  }
+
+  const sortedVertices = [];
+  sortedVertices.push(vertices[leftMostIndex]);
+  vertices.splice(leftMostIndex, 1);
+
+  while (vertices.length > 0) {
+    let closestIndex = 0;
+    let closestAngle = getAngle(
+      sortedVertices[sortedVertices.length - 1],
+      vertices[0]
+    );
+    for (let i = 1; i < vertices.length; i++) {
+      const angle = getAngle(
+        sortedVertices[sortedVertices.length - 1],
+        vertices[i]
+      );
+      if (angle < closestAngle) {
+        closestIndex = i;
+        closestAngle = angle;
+      }
+    }
+    sortedVertices.push(vertices[closestIndex]);
+    vertices.splice(closestIndex, 1);
+  }
+
+  return sortedVertices;
+}
+
+//2点間の角度を求める関数
+function getAngle(p1, p2) {
+  const deltaX = p2[0] - p1[0];
+  const deltaY = p2[1] - p1[1];
+  return Math.atan2(deltaY, deltaX);
+}
+
 //目的関数のオブジェクトを作成する関数(makeLpObject)で呼び出す
 function createObjective(outSides, objectiveCoef) {
   const objective = {
@@ -247,10 +296,12 @@ const RenderingText = ({ node, fontSize, fontName, color }) => {
 
   useEffect(() => {
     const [qx, qy] = convert2DArrayTo1DArray(
-      getConvexHull(node.data.word, fontName, fontSize),
+      sortVerticesClockwise(getConvexHull(node.data.word, fontName, fontSize))
     );
-    const [px, py] = convert2DArrayTo1DArray(node.polygon);
-    console.log(p_x, p_y, q_x, q_y);
+    const [px, py] = convert2DArrayTo1DArray(
+      sortVerticesClockwise(node.polygon)
+    );
+    console.log(px, py, qx, qy);
     const [objective, subjectTo] = makeLpObject(px, py, qx, qy);
     const solveLp = async () => {
       const glpk = await GLPK();
