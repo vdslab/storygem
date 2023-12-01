@@ -301,7 +301,7 @@ const RenderingText = ({ node, fontSize, fontName, color }) => {
     const [px, py] = convert2DArrayTo1DArray(
       sortVerticesClockwise(node.polygon)
     );
-    console.log(px, py, qx, qy);
+    console.log(node.data.word,px, py, qx, qy);
     const [objective, subjectTo] = makeLpObject(px, py, qx, qy);
     const solveLp = async () => {
       const glpk = await GLPK();
@@ -322,7 +322,6 @@ const RenderingText = ({ node, fontSize, fontName, color }) => {
     let result;
     solveLp(objective, subjectTo).then(
       (data) => {
-        console.log("success");
         result = data.result;
         //console.log(result);
         const [stateS, statedx, statedy] = calcResizeValue(
@@ -332,10 +331,10 @@ const RenderingText = ({ node, fontSize, fontName, color }) => {
           q_x,
           q_y,
         );
-        //console.log(stateS, statedx, statedy);
         setS(stateS);
         setDx(statedx);
         setDy(statedy);
+        console.log(node.data.word, " is success",stateS,statedx,statedy);
       },
       (err) => {
         console.log("error");
