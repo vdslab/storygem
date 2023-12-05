@@ -226,7 +226,7 @@ function makeLpObject(px, py, qx, qy) {
     const affineConsX = createAffineConstraint(
       lambdaNames,
       lambdaCoefX,
-      consCount,
+      consCount
     );
     if (affineConsX !== null) {
       consCount += 1;
@@ -235,7 +235,7 @@ function makeLpObject(px, py, qx, qy) {
     const affineConsY = createAffineConstraint(
       lambdaNames,
       lambdaCoefY,
-      consCount,
+      consCount
     );
     if (affineConsY !== null) {
       consCount += 1;
@@ -301,7 +301,7 @@ const RenderingText = ({ node, fontSize, fontName, color }) => {
     const [px, py] = convert2DArrayTo1DArray(
       sortVerticesClockwise(node.polygon)
     );
-    console.log(node.data.word,px, py, qx, qy);
+    console.log(node.data.word, px, py, qx, qy);
     const [objective, subjectTo] = makeLpObject(px, py, qx, qy);
     const solveLp = async () => {
       const glpk = await GLPK();
@@ -315,7 +315,7 @@ const RenderingText = ({ node, fontSize, fontName, color }) => {
           objective: objective,
           subjectTo: subjectTo,
         },
-        options,
+        options
       );
       return res;
     };
@@ -329,29 +329,29 @@ const RenderingText = ({ node, fontSize, fontName, color }) => {
           p_x,
           p_y,
           q_x,
-          q_y,
+          q_y
         );
         setS(stateS);
         setDx(statedx);
         setDy(statedy);
-        console.log(node.data.word, " is success",stateS,statedx,statedy);
+        console.log(node.data.word, " is success", stateS, statedx, statedy);
       },
       (err) => {
         console.log("error");
         result = null;
-      },
+      }
     );
   }, []);
   return (
     <g key={node.id}>
       <text
-        textAnchor="middle"
-        dominantBaseline="central"
+        textAnchor="start"
+        dominantBaseline="hanging"
         fontSize={fontSize}
         fontFamily={fontName}
         fontWeight="bold"
         fill={color}
-        transform={`translate(${dx},${dy})rotate(0)scale(${S})`}
+        transform={`scale(${S})translate(${dx},${dy})`}
       >
         {node.data.word}
       </text>
