@@ -5,7 +5,7 @@ import GLPK from "glpk.js";
 import { useEffect, useState } from "react";
 
 //単語の凸包を求める関数
-function getConvexHull(word, fontName, fontSize) {
+const getConvexHull = (word, fontName, fontSize) => {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
   ctx.font = `bold ${fontSize}px '${fontName}'`;
@@ -51,10 +51,10 @@ function getConvexHull(word, fontName, fontSize) {
     p0 = p1;
   } while (p0 !== q[0]);
   return q;
-}
+};
 
 //getConvexHullで得た単語の凸包を多角形の頂点の座標に変換する関数
-function convert2DArrayTo1DArray(array2D) {
+const convert2DArrayTo1DArray = (array2D) => {
   const arrayX = [];
   const arrayY = [];
   for (let i = 0; i < array2D.length; i++) {
@@ -62,10 +62,10 @@ function convert2DArrayTo1DArray(array2D) {
     arrayY.push(array2D[i][1]);
   }
   return [arrayX, arrayY];
-}
+};
 
 //多角形の座標を時計回りにソートする関数
-function sortVerticesClockwise(vertice) {
+const sortVerticesClockwise = (vertice) => {
   const vertices = vertice.concat();
   let leftMost = vertices[0];
   let leftMostIndex = 0;
@@ -104,17 +104,17 @@ function sortVerticesClockwise(vertice) {
   }
 
   return sortedVertices;
-}
+};
 
 //2点間の角度を求める関数
-function getAngle(p1, p2) {
+const getAngle = (p1, p2) => {
   const deltaX = p2[0] - p1[0];
   const deltaY = p2[1] - p1[1];
   return Math.atan2(deltaY, deltaX);
-}
+};
 
 //目的関数のオブジェクトを作成する関数(makeLpObject)で呼び出す
-function createObjective(outSides, objectiveCoef) {
+const createObjective = (outSides, objectiveCoef) => {
   const objective = {
     direction: 2,
     name: "obj",
@@ -133,7 +133,7 @@ function createObjective(outSides, objectiveCoef) {
 }
 
 //アフィン変換によって得られる制約を作成する関数(makeLpObject)で呼び出す
-function createAffineConstraint(lambdaNames, lambdaCoefs, consCount) {
+const createAffineConstraint = (lambdaNames, lambdaCoefs, consCount) => {
   const object = {
     name: `c${consCount}`,
     vars: [],
@@ -154,7 +154,7 @@ function createAffineConstraint(lambdaNames, lambdaCoefs, consCount) {
 }
 
 //LPソルバーに入れるオブジェクトを作成する関数
-function makeLpObject(px, py, qx, qy) {
+const makeLpObject = (px, py, qx, qy) => {
   const outSides = px.length;
   const inSides = qx.length;
   const objectiveCoef = Array(outSides * 2);
@@ -247,7 +247,7 @@ function makeLpObject(px, py, qx, qy) {
 }
 
 //LP解から拡大倍率とx,y軸方向に並行移動する値を求める関数
-function calcResizeValue(data, px, py, qx, qy) {
+const calcResizeValue = (data, px, py, qx, qy) => {
   const vars = data.vars;
   let resizeX = [0, 0],
     resizeY = [0, 0];
