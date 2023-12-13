@@ -1,5 +1,4 @@
 import * as d3 from "d3";
-//import { set } from "d3-collection";
 import { voronoiTreemap } from "d3-voronoi-treemap";
 import GLPK from "glpk.js";
 import { useEffect, useState } from "react";
@@ -114,7 +113,7 @@ const getAngle = (p1, p2) => {
 };
 
 //目的関数のオブジェクトを作成する関数(makeLpObject)で呼び出す
-const createObjective = (outSides, objectiveCoef) => {
+const createObjective = (outSidesPoints) => {
   const objective = {
     direction: 2,
     name: "obj",
@@ -122,9 +121,9 @@ const createObjective = (outSides, objectiveCoef) => {
   };
 
   for (let i = 1; i <= 2; i++) {
-    for (let j = 0; j < outSides; j++) {
-      const coef = objectiveCoef.shift();
-      const name = `lambda${i}${j}`;
+    for (let j = 0; j < outSidesPoints.length; j++) {
+      const coef = i === 1 ? -outSidesPoints[j] : outSidesPoints[j];
+      const name = `lambda${i}${j+1}`;
       objective.vars.push({ name: name, coef: coef });
     }
   }
