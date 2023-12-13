@@ -153,93 +153,43 @@ const createAffineConstraint = (lambdaNames, lambdaCoefs, consCount) => {
 }
 
 //LPソルバーに入れるオブジェクトを作成する関数
-const makeLpObject = (px, py, qx, qy) => {
-  const outSides = px.length;
-  const inSides = qx.length;
-  const objectiveCoef = Array(outSides * 2);
-  for (let i = 0; i < objectiveCoef.length; i++) {
-    objectiveCoef[i] = i < outSides ? -px[i] : px[i - outSides];
-  }
+const makeLpObject = (outsidesXPoints, outsidesYPoints, insidesXpoints, insidesYpoints) => {
+  const outSides = outsidesXPoints.length;
+  const inSides = insidesXpoints.length;
+  const objective = createObjective(outsidesXPoints);
 
-  const objective = createObjective(outSides, objectiveCoef);
-
-  //制約条件を格納する配列
-  const subjectTo = [];
-  let consCount = 1;
+  //lambdaの名前を保持する配列の作成
   const lambdaNames = Array(inSides);
-
-  //内側の多角形の頂点が外側の多角形の頂点の内部にある制約
   for (let i = 0; i < inSides; i++) {
     lambdaNames[i] = Array(outSides);
-    const object = {
+    for (let j = 0; j < outSides; j++) {
+      lambdaNames[i][j] = `lambda${i+1}${j+1}`;
+    }
+  }
+
+  //最適化後の多角形の各頂点が凸包の内側にある制約
+  const subjectTo = [];
+  let consCount = 1;
+  for (let lambdaINames of lambdaNames) {
+    const inConvexObj = {
       name: `c${consCount}`,
       vars: [],
       bnds: { type: 5, ub: 1.0, lb: 1.0 },
     };
 
-    for (let j = 0; j < outSides; j++) {
-      lambdaNames[i][j] = `lambda${i + 1}${j}`;
-      object.vars.push({ name: lambdaNames[i][j], coef: 1.0 });
-    }
-
-    consCount += 1;
-    subjectTo.push(object);
-  }
-
-  //lambdaの非負制約
-  for (let lambdaiNames of lambdaNames) {
-    for (let lambdaName of lambdaiNames) {
+    for (let lambdaName of lambdaINames) {
+      inConvexObj.vars.push({ name: lambdaName, coef: 1.0 });
+      //lambdaの非負制約
+      consCount += 1;
       const nonNegObj = {
         name: `c${consCount}`,
         vars: [{ name: lambdaName, coef: 1.0 }],
         bnds: { type: 3, ub: 1.0, lb: 0.0 },
       };
-      consCount += 1;
       subjectTo.push(nonNegObj);
     }
-  }
-
-  //アフィン変換によって得られる制約
-  const diffqX = qx[1] - qx[0];
-  for (let i = 0; i < inSides; i++) {
-    const lambdaCoefX = Array(inSides);
-    const lambdaCoefY = Array(inSides);
-    //lambdaの係数を格納する配列をx,yそれぞれ初期化
-    for (let k = 0; k < inSides; k++) {
-      lambdaCoefX[k] = Array(outSides).fill(0);
-      lambdaCoefY[k] = Array(outSides).fill(0);
-    }
-    for (let j = 0; j < outSides; j++) {
-      //xについてのlambdaの係数を格納
-      lambdaCoefX[i][j] += px[j] * diffqX;
-      lambdaCoefX[0][j] += -px[j] * (qx[1] - qx[i]);
-      lambdaCoefX[1][j] += px[j] * (qx[0] - qx[i]);
-
-      //yについてのlambdaの係数を格納
-      lambdaCoefY[i][j] += py[j] * diffqX;
-      lambdaCoefY[0][j] += -py[j] * diffqX;
-      lambdaCoefY[1][j] += px[j] * (qy[0] - qy[i]);
-      lambdaCoefY[0][j] += px[j] * (qy[i] - qy[0]);
-    }
-
-    const affineConsX = createAffineConstraint(
-      lambdaNames,
-      lambdaCoefX,
-      consCount
-    );
-    if (affineConsX !== null) {
-      consCount += 1;
-      subjectTo.push(affineConsX);
-    }
-    const affineConsY = createAffineConstraint(
-      lambdaNames,
-      lambdaCoefY,
-      consCount
-    );
-    if (affineConsY !== null) {
-      consCount += 1;
-      subjectTo.push(affineConsY);
-    }
+    subjectTo.push(inConvexObj);
+    consCount += 1;
   }
 
   return [objective, subjectTo];
