@@ -123,37 +123,31 @@ const createObjective = (outSidesPoints) => {
   for (let i = 1; i <= 2; i++) {
     for (let j = 0; j < outSidesPoints.length; j++) {
       const coef = i === 1 ? -outSidesPoints[j] : outSidesPoints[j];
-      const name = `lambda${i}${j+1}`;
+      const name = `lambda${i}${j + 1}`;
       objective.vars.push({ name: name, coef: coef });
     }
   }
 
   return objective;
-}
+};
 
-//アフィン変換によって得られる制約を作成する関数(makeLpObject)で呼び出す
-const createAffineConstraint = (lambdaNames, lambdaCoefs, consCount) => {
-  const object = {
-    name: `c${consCount}`,
-    vars: [],
-    bnds: { type: 5, ub: 0.0, lb: 0.0 },
-  };
-  for (let n = 0; n < lambdaNames.length; n++) {
-    for (let m = 0; m < lambdaNames[0].length; m++) {
-      if (lambdaCoefs[n][m] !== 0) {
-        object.vars.push({ name: lambdaNames[n][m], coef: lambdaCoefs[n][m] });
-      }
+const initlambdaCoefDict = (lambdaNames) => {
+  const lambdaCoefDict = {};
+  for (let lambdaIName of lambdaNames) {
+    for (let lambdaName of lambdaIName) {
+      lambdaCoefDict[lambdaName] = 0;
     }
   }
-  if (object.vars.length > 0) {
-    return object;
-  } else {
-    return null;
-  }
-}
+  return lambdaCoefDict;
+};
 
 //LPソルバーに入れるオブジェクトを作成する関数
-const makeLpObject = (outsidesXPoints, outsidesYPoints, insidesXpoints, insidesYpoints) => {
+const makeLpObject = (
+  outsidesXPoints,
+  outsidesYPoints,
+  insidesXpoints,
+  insidesYpoints
+) => {
   const outSides = outsidesXPoints.length;
   const inSides = insidesXpoints.length;
   const objective = createObjective(outsidesXPoints);
@@ -163,7 +157,7 @@ const makeLpObject = (outsidesXPoints, outsidesYPoints, insidesXpoints, insidesY
   for (let i = 0; i < inSides; i++) {
     lambdaNames[i] = Array(outSides);
     for (let j = 0; j < outSides; j++) {
-      lambdaNames[i][j] = `lambda${i+1}${j+1}`;
+      lambdaNames[i][j] = `lambda${i + 1}${j + 1}`;
     }
   }
 
@@ -192,8 +186,35 @@ const makeLpObject = (outsidesXPoints, outsidesYPoints, insidesXpoints, insidesY
     consCount += 1;
   }
 
+  for (let i = 0; i < inSides; i++) {
+    const affinObj = {
+      name: `c${consCount}`,
+      vars: [],
+      bnds: { type: 5, ub: 0.0, lb: 0.0 },
+    };
+    const diff1st2ndX = insidesXpoints[1] - insidesXpoints[0];
+    const diff2ndIX = insidesXpoints[1] - insidesXpoints[i];
+    const diff1stIX = insidesXpoints[0] - insidesXpoints[i];
+    const diff1stIY = insidesYpoints[0] - insidesYpoints[i];
+    for (let j = 0; j < outSides; j++) {
+      const lambdaCoefsX = initlambdaCoefDict(lambdaNames);
+      const lambdaCoefsY = initlambdaCoefDict(lambdaNames);
+      //xについての制約
+      lambdaCoefsX[`lambda${i + 1}${j + 1}`] = diff1st2ndX * outsidesXPoints[j];
+      lambdaCoefsX[`lambda1${j + 1}`] = -diff2ndIX * outsidesXPoints[j];
+      lambdaCoefsX[`lambda2${j + 1}`] = diff1stIX * outsidesXPoints[j];
+      //yについての制約
+      lambdaCoefsY[`lambda${i + 1}${j + 1}`] = diff1st2ndX * outsidesYPoints[j];
+      lambdaCoefsY[`lambda1${j + 1}`] = -diff1st2ndX * outsidesYPoints[j];
+      lambdaCoefsY[`lambda2${j + 1}`] = diff1stIY * outsidesXPoints[j];
+      lambdaCoefsY[`lambda1${j + 1}`] = -diff1stIY * outsidesXPoints[j];
+    }
+  }
+
   return [objective, subjectTo];
-}
+};
+//(inside_x_points[1]-inside_x_points[0])*pulp.lpDot( outside_y_points, lambda_dict[lambda_name] ) - (inside_x_points[1]-inside_x_points[0])*pulp.lpDot( outside_y_points, lambda_dict["lambda1"] )+ (inside_y_points[0] - inside_y_points[i])*pulp.lpDot( outside_x_points, lambda_dict["lambda2"] ) + (inside_y_points[i] - inside_y_points[0])*pulp.lpDot( outside_x_points, lambda_dict["lambda1"] )
+//(inside_x_points[1]-inside_x_points[0])*pulp.lpDot( outside_x_points, lambda_dict[lambda_name] ) - (inside_x_points[1] - inside_x_points[i])*pulp.lpDot( outside_x_points, lambda_dict["lambda1"] ) + (inside_x_points[0] - inside_x_points[i])*pulp.lpDot( outside_x_points, lambda_dict["lambda2"] )
 
 //LP解から拡大倍率とx,y軸方向に並行移動する値を求める関数
 const calcResizeValue = (data, px, py, qx, qy) => {
@@ -214,29 +235,7 @@ const calcResizeValue = (data, px, py, qx, qy) => {
   const dx = qx[0] - S * resizeX[0];
   const dy = qy[0] - S * resizeY[0];
   return [1 / S, -dx, -dy];
-}
-
-//テストケース
-//pは周りの多角形の座標
-const p_x = [
-  84.71806249273098, 76.3102293785846, 223.3695684469413, 328.77480252306344,
-  248.8355904076537,
-];
-const p_y = [
-  279.8880824020763, 108.00636224645602, 82.23245600370788, 182.48461966538346,
-  330.351186353769,
-];
-
-//qは内側の多角形の座標
-const q_x = [
-  145.99568420051924, 193.95783243765567, 253.38220885322718,
-  191.44643311455903,
-];
-const q_y = [
-  200.23112133304835, 152.81671477805406, 199.8565843194025, 252.35425881702227,
-];
-
-//console.log(S, dx, dy);
+};
 
 const RenderingText = ({ node, fontSize, fontName, color }) => {
   const [S, setS] = useState(0);
