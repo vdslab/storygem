@@ -163,10 +163,9 @@ const makeLpObject = (
 
   //最適化後の多角形の各頂点が凸包の内側にある制約
   const subjectTo = [];
-  let consCount = 1;
   for (let lambdaINames of lambdaNames) {
     const inConvexObj = {
-      name: `c${consCount}`,
+      name: "",
       vars: [],
       bnds: { type: 5, ub: 1.0, lb: 1.0 },
     };
@@ -174,21 +173,20 @@ const makeLpObject = (
     for (let lambdaName of lambdaINames) {
       inConvexObj.vars.push({ name: lambdaName, coef: 1.0 });
       //lambdaの非負制約
-      consCount += 1;
       const nonNegObj = {
-        name: `c${consCount}`,
+        name: "",
         vars: [{ name: lambdaName, coef: 1.0 }],
         bnds: { type: 3, ub: 1.0, lb: 0.0 },
       };
       subjectTo.push(nonNegObj);
     }
     subjectTo.push(inConvexObj);
-    consCount += 1;
   }
 
+  //アフィン変換で得られる制約
   for (let i = 0; i < inSides; i++) {
     const affinObj = {
-      name: `c${consCount}`,
+      name: "",
       vars: [],
       bnds: { type: 5, ub: 0.0, lb: 0.0 },
     };
@@ -196,9 +194,12 @@ const makeLpObject = (
     const diff2ndIX = insidesXpoints[1] - insidesXpoints[i];
     const diff1stIX = insidesXpoints[0] - insidesXpoints[i];
     const diff1stIY = insidesYpoints[0] - insidesYpoints[i];
+    let lambdaCoefsX = {};
+    let lambdaCoefsY = {};
     for (let j = 0; j < outSides; j++) {
-      const lambdaCoefsX = initlambdaCoefDict(lambdaNames);
-      const lambdaCoefsY = initlambdaCoefDict(lambdaNames);
+      //lambdaの係数を初期化
+      lambdaCoefsX = initlambdaCoefDict(lambdaNames);
+      lambdaCoefsY = initlambdaCoefDict(lambdaNames);
       //xについての制約
       lambdaCoefsX[`lambda${i + 1}${j + 1}`] = diff1st2ndX * outsidesXPoints[j];
       lambdaCoefsX[`lambda1${j + 1}`] = -diff2ndIX * outsidesXPoints[j];
@@ -208,7 +209,27 @@ const makeLpObject = (
       lambdaCoefsY[`lambda1${j + 1}`] = -diff1st2ndX * outsidesYPoints[j];
       lambdaCoefsY[`lambda2${j + 1}`] = diff1stIY * outsidesXPoints[j];
       lambdaCoefsY[`lambda1${j + 1}`] = -diff1stIY * outsidesXPoints[j];
+      for (let k = 0; k < outSides; k++) {
+        if (lambdaCoefsX[lambdaNames[i][k]] !== 0) {
+          affinObj.vars.push({
+            name: lambdaNames[i][k],
+            coef: lambdaCoefsX[lambdaNames[i][k]],
+          });
+        }
+        if (lambdaCoefsY[lambdaNames[i][k]] !== 0) {
+          affinObj.vars.push({
+            name: lambdaNames[i][k],
+            coef: lambdaCoefsY[lambdaNames[i][k]],
+          });
+        }
+      }
     }
+    subjectTo.push(affinObj);
+  }
+
+  //制約条件のユニークな名前をつける
+  for (let constraints of subjectTo) {
+    constraints.name = `c${subjectTo.indexOf(constraints) + 1}`;
   }
 
   return [objective, subjectTo];
@@ -222,8 +243,8 @@ const calcResizeValue = (data, px, py, qx, qy) => {
   let resizeX = [0, 0],
     resizeY = [0, 0];
   for (let i = 0; i < px.length; i++) {
-    const lambdaName1 = "lambda1" + String(i);
-    const lambdaName2 = "lambda2" + String(i);
+    const lambdaName1 = "lambda1" + String(i + 1);
+    const lambdaName2 = "lambda2" + String(i + 1);
     resizeX[0] += vars[lambdaName1] * px[i];
     resizeX[1] += vars[lambdaName2] * px[i];
     resizeY[0] += vars[lambdaName1] * py[i];
@@ -251,6 +272,7 @@ const RenderingText = ({ node, fontSize, fontName, color }) => {
     );
     console.log(node.data.word, px, py, qx, qy);
     const [objective, subjectTo] = makeLpObject(px, py, qx, qy);
+    console.log(node.data.word, objective, subjectTo);
     const solveLp = async () => {
       const glpk = await GLPK();
       const options = {
@@ -271,13 +293,12 @@ const RenderingText = ({ node, fontSize, fontName, color }) => {
     solveLp(objective, subjectTo).then(
       (data) => {
         result = data.result;
-        //console.log(result);
         const [stateS, statedx, statedy] = calcResizeValue(
           result,
-          p_x,
-          p_y,
-          q_x,
-          q_y
+          px,
+          py,
+          qx,
+          qy
         );
         setS(stateS);
         setDx(statedx);
@@ -290,6 +311,7 @@ const RenderingText = ({ node, fontSize, fontName, color }) => {
       }
     );
   }, []);
+  console.log(node.data.word, S, dx, dy);
   return (
     <g key={node.id}>
       <text
