@@ -141,6 +141,15 @@ const initlambdaCoefDict = (lambdaNames) => {
   return lambdaCoefDict;
 };
 
+const initAffinObj = () => {
+  const affinObj = {
+    name: "",
+    vars: [],
+    bnds: { type: 5, ub: 0.0, lb: 0.0 },
+  };
+  return affinObj;
+};
+
 //LPソルバーに入れるオブジェクトを作成する関数
 const makeLpObject = (
   outsidesXPoints,
@@ -185,46 +194,47 @@ const makeLpObject = (
 
   //アフィン変換で得られる制約
   for (let i = 0; i < inSides; i++) {
-    const affinObj = {
-      name: "",
-      vars: [],
-      bnds: { type: 5, ub: 0.0, lb: 0.0 },
-    };
     const diff1st2ndX = insidesXpoints[1] - insidesXpoints[0];
     const diff2ndIX = insidesXpoints[1] - insidesXpoints[i];
     const diff1stIX = insidesXpoints[0] - insidesXpoints[i];
     const diff1stIY = insidesYpoints[0] - insidesYpoints[i];
-    let lambdaCoefsX = {};
-    let lambdaCoefsY = {};
+    //lambdaの係数を初期化
+    const lambdaCoefsX = initlambdaCoefDict(lambdaNames);
+    const lambdaCoefsY = initlambdaCoefDict(lambdaNames);
     for (let j = 0; j < outSides; j++) {
-      //lambdaの係数を初期化
-      lambdaCoefsX = initlambdaCoefDict(lambdaNames);
-      lambdaCoefsY = initlambdaCoefDict(lambdaNames);
       //xについての制約
-      lambdaCoefsX[`lambda${i + 1}${j + 1}`] = diff1st2ndX * outsidesXPoints[j];
-      lambdaCoefsX[`lambda1${j + 1}`] = -diff2ndIX * outsidesXPoints[j];
-      lambdaCoefsX[`lambda2${j + 1}`] = diff1stIX * outsidesXPoints[j];
+      lambdaCoefsX[`lambda${i + 1}${j + 1}`] += diff1st2ndX * outsidesXPoints[j];
+      lambdaCoefsX[`lambda1${j + 1}`] += -diff2ndIX * outsidesXPoints[j];
+      lambdaCoefsX[`lambda2${j + 1}`] += diff1stIX * outsidesXPoints[j];
       //yについての制約
-      lambdaCoefsY[`lambda${i + 1}${j + 1}`] = diff1st2ndX * outsidesYPoints[j];
-      lambdaCoefsY[`lambda1${j + 1}`] = -diff1st2ndX * outsidesYPoints[j];
-      lambdaCoefsY[`lambda2${j + 1}`] = diff1stIY * outsidesXPoints[j];
-      lambdaCoefsY[`lambda1${j + 1}`] = -diff1stIY * outsidesXPoints[j];
-      for (let k = 0; k < outSides; k++) {
-        if (lambdaCoefsX[lambdaNames[i][k]] !== 0) {
-          affinObj.vars.push({
-            name: lambdaNames[i][k],
-            coef: lambdaCoefsX[lambdaNames[i][k]],
-          });
-        }
-        if (lambdaCoefsY[lambdaNames[i][k]] !== 0) {
-          affinObj.vars.push({
-            name: lambdaNames[i][k],
-            coef: lambdaCoefsY[lambdaNames[i][k]],
-          });
+      lambdaCoefsY[`lambda${i + 1}${j + 1}`] += diff1st2ndX * outsidesYPoints[j];
+      lambdaCoefsY[`lambda1${j + 1}`] += -diff1st2ndX * outsidesYPoints[j];
+      lambdaCoefsY[`lambda2${j + 1}`] += diff1stIY * outsidesXPoints[j];
+      lambdaCoefsY[`lambda1${j + 1}`] += -diff1stIY * outsidesXPoints[j];
+    }
+    //制約条件のセット
+    const affinXObj = initAffinObj();
+    for (let lambdaINames of lambdaNames){
+      for(let lambdaName of lambdaINames){
+        if(lambdaCoefsX[lambdaName] !== 0){
+          affinXObj.vars.push({name: lambdaName, coef: lambdaCoefsX[lambdaName]});
         }
       }
     }
-    subjectTo.push(affinObj);
+    if(affinXObj.vars.length > 0){
+      subjectTo.push(affinXObj);
+    }
+    const affinYObj = initAffinObj();
+    for (let lambdaINames of lambdaNames){
+      for(let lambdaName of lambdaINames){
+        if(lambdaCoefsY[lambdaName] !== 0){
+          affinYObj.vars.push({name: lambdaName, coef: lambdaCoefsY[lambdaName]});
+        }
+      }
+    }
+    if (affinYObj.vars.length > 0) {
+      subjectTo.push(affinYObj);
+    }
   }
 
   //制約条件のユニークな名前をつける
@@ -234,8 +244,6 @@ const makeLpObject = (
 
   return [objective, subjectTo];
 };
-//(inside_x_points[1]-inside_x_points[0])*pulp.lpDot( outside_y_points, lambda_dict[lambda_name] ) - (inside_x_points[1]-inside_x_points[0])*pulp.lpDot( outside_y_points, lambda_dict["lambda1"] )+ (inside_y_points[0] - inside_y_points[i])*pulp.lpDot( outside_x_points, lambda_dict["lambda2"] ) + (inside_y_points[i] - inside_y_points[0])*pulp.lpDot( outside_x_points, lambda_dict["lambda1"] )
-//(inside_x_points[1]-inside_x_points[0])*pulp.lpDot( outside_x_points, lambda_dict[lambda_name] ) - (inside_x_points[1] - inside_x_points[i])*pulp.lpDot( outside_x_points, lambda_dict["lambda1"] ) + (inside_x_points[0] - inside_x_points[i])*pulp.lpDot( outside_x_points, lambda_dict["lambda2"] )
 
 //LP解から拡大倍率とx,y軸方向に並行移動する値を求める関数
 const calcResizeValue = (data, px, py, qx, qy) => {
@@ -243,8 +251,8 @@ const calcResizeValue = (data, px, py, qx, qy) => {
   let resizeX = [0, 0],
     resizeY = [0, 0];
   for (let i = 0; i < px.length; i++) {
-    const lambdaName1 = "lambda1" + String(i + 1);
-    const lambdaName2 = "lambda2" + String(i + 1);
+    const lambdaName1 = `lambda1${i + 1}`;
+    const lambdaName2 = `lambda2${i + 1}`;
     resizeX[0] += vars[lambdaName1] * px[i];
     resizeX[1] += vars[lambdaName2] * px[i];
     resizeY[0] += vars[lambdaName1] * py[i];
@@ -259,7 +267,7 @@ const calcResizeValue = (data, px, py, qx, qy) => {
 };
 
 const RenderingText = ({ node, fontSize, fontName, color }) => {
-  const [S, setS] = useState(0);
+  const [S, setS] = useState(1);
   const [dx, setDx] = useState(0);
   const [dy, setDy] = useState(0);
 
@@ -272,7 +280,6 @@ const RenderingText = ({ node, fontSize, fontName, color }) => {
     );
     console.log(node.data.word, px, py, qx, qy);
     const [objective, subjectTo] = makeLpObject(px, py, qx, qy);
-    console.log(node.data.word, objective, subjectTo);
     const solveLp = async () => {
       const glpk = await GLPK();
       const options = {
@@ -311,7 +318,6 @@ const RenderingText = ({ node, fontSize, fontName, color }) => {
       }
     );
   }, []);
-  console.log(node.data.word, S, dx, dy);
   return (
     <g key={node.id}>
       <text
