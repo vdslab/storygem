@@ -322,7 +322,7 @@ const RenderingText = ({ node, fontSize, fontName, color }) => {
     <g key={node.id}>
       <text
         textAnchor="start"
-        dominantBaseline="hanging"
+        dominantBaseline="text-before-edge"
         fontSize={fontSize}
         fontFamily={fontName}
         fontWeight="bold"
