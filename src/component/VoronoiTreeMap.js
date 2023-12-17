@@ -278,13 +278,12 @@ const RenderingText = ({ node, fontSize, fontName, color }) => {
     const [px, py] = convert2DArrayTo1DArray(
       sortVerticesClockwise(node.polygon)
     );
-    console.log(node.data.word, px, py, qx, qy);
     const [objective, subjectTo] = makeLpObject(px, py, qx, qy);
     const solveLp = async () => {
       const glpk = await GLPK();
       const options = {
-        msglev: glpk.GLP_MSG_ALL,
-        presol: true,
+        msglev: glpk.GLP_MSG_ERR,
+        presol: false,
       };
       const res = glpk.solve(
         {
@@ -310,7 +309,6 @@ const RenderingText = ({ node, fontSize, fontName, color }) => {
         setS(stateS);
         setDx(statedx);
         setDy(statedy);
-        console.log(node.data.word, " is success", stateS, statedx, statedy);
       },
       (err) => {
         console.log("error");
@@ -400,6 +398,7 @@ const VoronoiTreeMap = ({ data }) => {
   const color = "#444";
   const fontSize = 10;
   const fontFamily = "New Tegomin";
+
 
   return (
     <div className="container">
