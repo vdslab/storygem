@@ -10,7 +10,7 @@ const getConvexHull = (word, fontName, fontSize) => {
   ctx.font = `bold ${fontSize}px '${fontName}'`;
   canvas.width = ctx.measureText(word).width;
   canvas.height = fontSize;
-  ctx.textBaseline = "top";
+  ctx.textBaseline = "hanging";
   ctx.font = `bold ${fontSize}px '${fontName}'`;
   ctx.fillText(word, 0, 0);
   const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -203,32 +203,40 @@ const makeLpObject = (
     const lambdaCoefsY = initlambdaCoefDict(lambdaNames);
     for (let j = 0; j < outSides; j++) {
       //xについての制約
-      lambdaCoefsX[`lambda${i + 1}${j + 1}`] += diff1st2ndX * outsidesXPoints[j];
+      lambdaCoefsX[`lambda${i + 1}${j + 1}`] +=
+        diff1st2ndX * outsidesXPoints[j];
       lambdaCoefsX[`lambda1${j + 1}`] += -diff2ndIX * outsidesXPoints[j];
       lambdaCoefsX[`lambda2${j + 1}`] += diff1stIX * outsidesXPoints[j];
       //yについての制約
-      lambdaCoefsY[`lambda${i + 1}${j + 1}`] += diff1st2ndX * outsidesYPoints[j];
+      lambdaCoefsY[`lambda${i + 1}${j + 1}`] +=
+        diff1st2ndX * outsidesYPoints[j];
       lambdaCoefsY[`lambda1${j + 1}`] += -diff1st2ndX * outsidesYPoints[j];
       lambdaCoefsY[`lambda2${j + 1}`] += diff1stIY * outsidesXPoints[j];
       lambdaCoefsY[`lambda1${j + 1}`] += -diff1stIY * outsidesXPoints[j];
     }
     //制約条件のセット
     const affinXObj = initAffinObj();
-    for (let lambdaINames of lambdaNames){
-      for(let lambdaName of lambdaINames){
-        if(lambdaCoefsX[lambdaName] !== 0){
-          affinXObj.vars.push({name: lambdaName, coef: lambdaCoefsX[lambdaName]});
+    for (let lambdaINames of lambdaNames) {
+      for (let lambdaName of lambdaINames) {
+        if (lambdaCoefsX[lambdaName] !== 0) {
+          affinXObj.vars.push({
+            name: lambdaName,
+            coef: lambdaCoefsX[lambdaName],
+          });
         }
       }
     }
-    if(affinXObj.vars.length > 0){
+    if (affinXObj.vars.length > 0) {
       subjectTo.push(affinXObj);
     }
     const affinYObj = initAffinObj();
-    for (let lambdaINames of lambdaNames){
-      for(let lambdaName of lambdaINames){
-        if(lambdaCoefsY[lambdaName] !== 0){
-          affinYObj.vars.push({name: lambdaName, coef: lambdaCoefsY[lambdaName]});
+    for (let lambdaINames of lambdaNames) {
+      for (let lambdaName of lambdaINames) {
+        if (lambdaCoefsY[lambdaName] !== 0) {
+          affinYObj.vars.push({
+            name: lambdaName,
+            coef: lambdaCoefsY[lambdaName],
+          });
         }
       }
     }
@@ -261,71 +269,99 @@ const calcResizeValue = (data, px, py, qx, qy) => {
   const S =
     Math.hypot(qx[1] - qx[0], qy[1] - qy[0]) /
     Math.hypot(resizeX[1] - resizeX[0], resizeY[1] - resizeY[0]);
-  const dx = qx[0] - S * resizeX[0];
-  const dy = qy[0] - S * resizeY[0];
+  const dx = qx[0] / S - resizeX[0];
+  const dy = qy[0] / S - resizeY[0];
   return [1 / S, -dx, -dy];
+};
+
+const rotate = ([qx, qy], theta) => {
+  const cos = Math.cos(theta);
+  const sin = Math.sin(theta);
+  const rotatedQx = [];
+  const rotatedQy = [];
+  for (let i = 0; i < qx.length; i++) {
+    rotatedQx[i] = qx[i] * cos - qy[i] * sin;
+    rotatedQy[i] = qx[i] * sin + qy[i] * cos;
+  }
+  return [rotatedQx, rotatedQy];
 };
 
 const RenderingText = ({ node, fontSize, fontName, color }) => {
   const [S, setS] = useState(1);
   const [dx, setDx] = useState(0);
   const [dy, setDy] = useState(0);
+  const [theta, setTheta] = useState(0);
 
   useEffect(() => {
-    const [qx, qy] = convert2DArrayTo1DArray(
-      sortVerticesClockwise(getConvexHull(node.data.word, fontName, fontSize))
-    );
     const [px, py] = convert2DArrayTo1DArray(
       sortVerticesClockwise(node.polygon)
     );
-    const [objective, subjectTo] = makeLpObject(px, py, qx, qy);
-    const solveLp = async () => {
-      const glpk = await GLPK();
-      const options = {
-        msglev: glpk.GLP_MSG_ERR,
-        presol: false,
-      };
-      const res = glpk.solve(
-        {
-          name: "LP",
-          objective: objective,
-          subjectTo: subjectTo,
-        },
-        options
+    const maxScale = 1.0;
+    const radianList = [-Math.PI/2, -Math.PI3/3, -Math.PI/6,0, Math.PI/6, Math.PI/3, Math.PI/2]
+    for (let radian of radianList) {
+      const [qx, qy] = rotate(
+        convert2DArrayTo1DArray(
+          sortVerticesClockwise(
+            getConvexHull(node.data.word, fontName, fontSize)
+          )
+        ),
+        radian
       );
-      return res;
-    };
-    let result;
-    solveLp(objective, subjectTo).then(
-      (data) => {
-        result = data.result;
-        const [stateS, statedx, statedy] = calcResizeValue(
-          result,
-          px,
-          py,
-          qx,
-          qy
+      const [objective, subjectTo] = makeLpObject(px, py, qx, qy);
+      const solveLp = async () => {
+        const glpk = await GLPK();
+        const options = {
+          msglev: glpk.GLP_MSG_ERR,
+          presol: false,
+        };
+        const res = glpk.solve(
+          {
+            name: "LP",
+            objective: objective,
+            subjectTo: subjectTo,
+          },
+          options
         );
-        setS(stateS);
-        setDx(statedx);
-        setDy(statedy);
-      },
-      (err) => {
-        console.log("error");
-        result = null;
-      }
-    );
+        return res;
+      };
+      let result;
+      solveLp(objective, subjectTo).then(
+        (data) => {
+          result = data.result;
+          const [stateS, statedx, statedy] = calcResizeValue(
+            result,
+            px,
+            py,
+            qx,
+            qy
+          );
+          if (stateS > maxScale) {
+            setS(stateS);
+            setDx(statedx);
+            setDy(statedy);
+            setTheta(radian);
+          }
+        },
+        (err) => {
+          console.log("error");
+          result = null;
+        }
+      );
+    }
   }, []);
+  console.log(node.data.word, theta * (180 / Math.PI));
   return (
     <g key={node.id}>
       <text
         textAnchor="start"
-        dominantBaseline="text-before-edge"
+        dominantBaseline="hanging"
         fontSize={fontSize}
         fontFamily={fontName}
         fontWeight="bold"
         fill={color}
-        transform={`scale(${S})translate(${dx},${dy})`}
+        transform={`translate(${dx},${dy})scale(${S})rotate(${
+          theta * (180 / Math.PI)
+        })`}
       >
         {node.data.word}
       </text>
@@ -397,8 +433,7 @@ const VoronoiTreeMap = ({ data }) => {
 
   const color = "#444";
   const fontSize = 10;
-  const fontFamily = "New Tegomin";
-
+  const fontFamily = "serif";
 
   return (
     <div className="container">
