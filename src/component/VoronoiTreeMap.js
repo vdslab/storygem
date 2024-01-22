@@ -1,6 +1,7 @@
 import * as d3 from "d3";
 import { voronoiTreemap } from "d3-voronoi-treemap";
 import GLPK from "glpk.js";
+import { makeLpObject } from "../lp";
 import { useEffect, useState } from "react";
 
 //単語の凸包を求める関数
@@ -86,12 +87,12 @@ const sortVerticesClockwise = (vertice) => {
     let closestIndex = 0;
     let closestAngle = getAngle(
       sortedVertices[sortedVertices.length - 1],
-      vertices[0]
+      vertices[0],
     );
     for (let i = 1; i < vertices.length; i++) {
       const angle = getAngle(
         sortedVertices[sortedVertices.length - 1],
-        vertices[i]
+        vertices[i],
       );
       if (angle < closestAngle) {
         closestIndex = i;
@@ -110,147 +111,6 @@ const getAngle = (p1, p2) => {
   const deltaX = p2[0] - p1[0];
   const deltaY = p2[1] - p1[1];
   return Math.atan2(deltaY, deltaX);
-};
-
-//目的関数のオブジェクトを作成する関数(makeLpObject)で呼び出す
-const createObjective = (outSidesPoints) => {
-  const objective = {
-    direction: 2,
-    name: "obj",
-    vars: [],
-  };
-
-  for (let i = 1; i <= 2; i++) {
-    for (let j = 0; j < outSidesPoints.length; j++) {
-      const coef = i === 1 ? -outSidesPoints[j] : outSidesPoints[j];
-      const name = `lambda${i}${j + 1}`;
-      objective.vars.push({ name: name, coef: coef });
-    }
-  }
-
-  return objective;
-};
-
-const initlambdaCoefDict = (lambdaNames) => {
-  const lambdaCoefDict = {};
-  for (let lambdaIName of lambdaNames) {
-    for (let lambdaName of lambdaIName) {
-      lambdaCoefDict[lambdaName] = 0;
-    }
-  }
-  return lambdaCoefDict;
-};
-
-const initAffinObj = () => {
-  const affinObj = {
-    name: "",
-    vars: [],
-    bnds: { type: 5, ub: 0.0, lb: 0.0 },
-  };
-  return affinObj;
-};
-
-//LPソルバーに入れるオブジェクトを作成する関数
-const makeLpObject = (
-  outsidesXPoints,
-  outsidesYPoints,
-  insidesXpoints,
-  insidesYpoints
-) => {
-  const outSides = outsidesXPoints.length;
-  const inSides = insidesXpoints.length;
-  const objective = createObjective(outsidesXPoints);
-
-  //lambdaの名前を保持する配列の作成
-  const lambdaNames = Array(inSides);
-  for (let i = 0; i < inSides; i++) {
-    lambdaNames[i] = Array(outSides);
-    for (let j = 0; j < outSides; j++) {
-      lambdaNames[i][j] = `lambda${i + 1}${j + 1}`;
-    }
-  }
-
-  //最適化後の多角形の各頂点が凸包の内側にある制約
-  const subjectTo = [];
-  for (let lambdaINames of lambdaNames) {
-    const inConvexObj = {
-      name: "",
-      vars: [],
-      bnds: { type: 5, ub: 1.0, lb: 1.0 },
-    };
-
-    for (let lambdaName of lambdaINames) {
-      inConvexObj.vars.push({ name: lambdaName, coef: 1.0 });
-      //lambdaの非負制約
-      const nonNegObj = {
-        name: "",
-        vars: [{ name: lambdaName, coef: 1.0 }],
-        bnds: { type: 3, ub: 1.0, lb: 0.0 },
-      };
-      subjectTo.push(nonNegObj);
-    }
-    subjectTo.push(inConvexObj);
-  }
-
-  //アフィン変換で得られる制約
-  for (let i = 0; i < inSides; i++) {
-    const diff1st2ndX = insidesXpoints[1] - insidesXpoints[0];
-    const diff2ndIX = insidesXpoints[1] - insidesXpoints[i];
-    const diff1stIX = insidesXpoints[0] - insidesXpoints[i];
-    const diff1stIY = insidesYpoints[0] - insidesYpoints[i];
-    //lambdaの係数を初期化
-    const lambdaCoefsX = initlambdaCoefDict(lambdaNames);
-    const lambdaCoefsY = initlambdaCoefDict(lambdaNames);
-    for (let j = 0; j < outSides; j++) {
-      //xについての制約
-      lambdaCoefsX[`lambda${i + 1}${j + 1}`] +=
-        diff1st2ndX * outsidesXPoints[j];
-      lambdaCoefsX[`lambda1${j + 1}`] += -diff2ndIX * outsidesXPoints[j];
-      lambdaCoefsX[`lambda2${j + 1}`] += diff1stIX * outsidesXPoints[j];
-      //yについての制約
-      lambdaCoefsY[`lambda${i + 1}${j + 1}`] +=
-        diff1st2ndX * outsidesYPoints[j];
-      lambdaCoefsY[`lambda1${j + 1}`] += -diff1st2ndX * outsidesYPoints[j];
-      lambdaCoefsY[`lambda2${j + 1}`] += diff1stIY * outsidesXPoints[j];
-      lambdaCoefsY[`lambda1${j + 1}`] += -diff1stIY * outsidesXPoints[j];
-    }
-    //制約条件のセット
-    const affinXObj = initAffinObj();
-    for (let lambdaINames of lambdaNames) {
-      for (let lambdaName of lambdaINames) {
-        if (lambdaCoefsX[lambdaName] !== 0) {
-          affinXObj.vars.push({
-            name: lambdaName,
-            coef: lambdaCoefsX[lambdaName],
-          });
-        }
-      }
-    }
-    if (affinXObj.vars.length > 0) {
-      subjectTo.push(affinXObj);
-    }
-    const affinYObj = initAffinObj();
-    for (let lambdaINames of lambdaNames) {
-      for (let lambdaName of lambdaINames) {
-        if (lambdaCoefsY[lambdaName] !== 0) {
-          affinYObj.vars.push({
-            name: lambdaName,
-            coef: lambdaCoefsY[lambdaName],
-          });
-        }
-      }
-    }
-    if (affinYObj.vars.length > 0) {
-      subjectTo.push(affinYObj);
-    }
-  }
-
-  //制約条件のユニークな名前をつける
-  for (let constraints of subjectTo) {
-    constraints.name = `c${subjectTo.indexOf(constraints) + 1}`;
-  }
-
-  return [objective, subjectTo];
 };
 
 //LP解から拡大倍率とx,y軸方向に並行移動する値を求める関数
@@ -286,82 +146,66 @@ const rotate = ([qx, qy], theta) => {
   return [rotatedQx, rotatedQy];
 };
 
-const RenderingText = ({ node, fontSize, fontName, color }) => {
-  const [S, setS] = useState(1);
-  const [dx, setDx] = useState(0);
-  const [dy, setDy] = useState(0);
-  const [theta, setTheta] = useState(0);
+const textTransform = async (text, fontSize, fontName, polygon, glpk) => {
+  let s = 1;
+  let dx = 0;
+  let dy = 0;
+  let a = 0;
 
-  useEffect(() => {
-    const [px, py] = convert2DArrayTo1DArray(
-      sortVerticesClockwise(node.polygon)
+  const [px, py] = convert2DArrayTo1DArray(sortVerticesClockwise(polygon));
+  const radianList = [
+    -Math.PI / 2,
+    -Math.PI3 / 3,
+    -Math.PI / 6,
+    0,
+    Math.PI / 6,
+    Math.PI / 3,
+    Math.PI / 2,
+  ];
+  for (let radian of radianList) {
+    const [qx, qy] = rotate(
+      convert2DArrayTo1DArray(
+        sortVerticesClockwise(getConvexHull(text, fontName, fontSize)),
+      ),
+      radian,
     );
-    const maxScale = 1.0;
-    const radianList = [-Math.PI/2, -Math.PI3/3, -Math.PI/6,0, Math.PI/6, Math.PI/3, Math.PI/2]
-    for (let radian of radianList) {
-      const [qx, qy] = rotate(
-        convert2DArrayTo1DArray(
-          sortVerticesClockwise(
-            getConvexHull(node.data.word, fontName, fontSize)
-          )
-        ),
-        radian
-      );
-      const [objective, subjectTo] = makeLpObject(px, py, qx, qy);
-      const solveLp = async () => {
-        const glpk = await GLPK();
-        const options = {
-          msglev: glpk.GLP_MSG_ERR,
-          presol: false,
-        };
-        const res = glpk.solve(
-          {
-            name: "LP",
-            objective: objective,
-            subjectTo: subjectTo,
-          },
-          options
-        );
-        return res;
-      };
-      let result;
-      solveLp(objective, subjectTo).then(
-        (data) => {
-          result = data.result;
-          const [stateS, statedx, statedy] = calcResizeValue(
-            result,
-            px,
-            py,
-            qx,
-            qy
-          );
-          if (stateS > maxScale) {
-            setS(stateS);
-            setDx(statedx);
-            setDy(statedy);
-            setTheta(radian);
-          }
-        },
-        (err) => {
-          console.log("error");
-          result = null;
-        }
-      );
+    const [objective, subjectTo] = makeLpObject(px, py, qx, qy);
+    const options = {
+      msglev: glpk.GLP_MSG_ERR,
+      presol: false,
+    };
+    const { result } = await glpk.solve(
+      {
+        name: "LP",
+        objective: objective,
+        subjectTo: subjectTo,
+      },
+      options,
+    );
+    const [stateS, statedx, statedy] = calcResizeValue(result, px, py, qx, qy);
+    if (stateS > s) {
+      s = stateS;
+      dx = statedx;
+      dy = statedy;
+      a = radian * (180 / Math.PI);
     }
-  }, []);
-  console.log(node.data.word, theta * (180 / Math.PI));
+  }
+
+  return { s, dx, dy, a };
+};
+
+const RenderingText = ({ node, color }) => {
+  const { s, dx, dy, a } = node.textTransform;
   return (
     <g key={node.id}>
       <text
         textAnchor="start"
         dominantBaseline="hanging"
-        fontSize={fontSize}
-        fontFamily={fontName}
+        fontSize={node.fontSize}
+        fontFamily={node.fontFamily}
         fontWeight="bold"
         fill={color}
-        transform={`translate(${dx},${dy})scale(${S})rotate(${
-          theta * (180 / Math.PI)
-        })`}
+        transform={`translate(${dx},${dy})scale(${s})rotate(${a})`}
       >
         {node.data.word}
       </text>
@@ -369,7 +213,7 @@ const RenderingText = ({ node, fontSize, fontName, color }) => {
   );
 };
 
-const VoronoiTreeMap = ({ data }) => {
+const layoutVoronoiTreeMap = async ({ data, chartSize, glpk }) => {
   const weightScale = d3
     .scaleLinear()
     .domain(d3.extent(data, (d) => d.weight))
@@ -379,24 +223,15 @@ const VoronoiTreeMap = ({ data }) => {
   d3.hierarchy(root);
   root.sum((d) => weightScale(d.weight));
 
-  const chartSize = 1000;
-  const margin = {
-    top: 20,
-    right: 20,
-    bottom: 20,
-    left: 20,
-  };
-
   const colorScale = d3.scaleOrdinal(d3.schemeTableau10);
-  const nodeColor = {};
-  nodeColor[root.id] = "none";
+  root.color = "none";
   for (const cluster of root.children) {
     const color = colorScale(cluster.id);
     for (const node of cluster.descendants()) {
       if (node.children) {
-        nodeColor[node.id] = "none";
+        node.color = "none";
       } else {
-        nodeColor[node.id] = color;
+        node.color = color;
       }
     }
   }
@@ -431,9 +266,45 @@ const VoronoiTreeMap = ({ data }) => {
 
   const allNodes = root.descendants().sort((a, b) => b.depth - a.depth);
 
-  const color = "#444";
   const fontSize = 10;
   const fontFamily = "serif";
+  for (const node of allNodes) {
+    node.fontSize = fontSize;
+    node.fontFamily = fontFamily;
+    node.textTransform = await textTransform(
+      node.data.word,
+      fontSize,
+      fontFamily,
+      node.polygon,
+      glpk,
+    );
+  }
+
+  return allNodes;
+};
+
+const VoronoiTreeMap = ({ data }) => {
+  const [cells, setCells] = useState(null);
+  const chartSize = 1000;
+  const margin = {
+    top: 20,
+    right: 20,
+    bottom: 20,
+    left: 20,
+  };
+  const fontColor = "#444";
+
+  useEffect(() => {
+    (async () => {
+      const glpk = await GLPK();
+      const cells = await layoutVoronoiTreeMap({ data, chartSize, glpk });
+      setCells(cells);
+    })();
+  }, [data, chartSize]);
+
+  if (cells == null) {
+    return null;
+  }
 
   return (
     <div className="container">
@@ -446,15 +317,15 @@ const VoronoiTreeMap = ({ data }) => {
             }`}
           >
             <g transform={`translate(${margin.left},${margin.top})`}>
-              <g transform={`translate(${chartR},${chartR})`}>
+              <g transform={`translate(${chartSize / 2},${chartSize / 2})`}>
                 <g>
-                  {allNodes.map((node) => {
+                  {cells.map((node) => {
                     return (
                       <g key={node.id}>
                         <path
                           d={"M" + node.polygon.join("L") + "Z"}
-                          fill={nodeColor[node.data.id]}
-                          stroke={color}
+                          fill={node.color}
+                          stroke={fontColor}
                           strokeWidth={node.height + 1}
                         />
                       </g>
@@ -462,17 +333,10 @@ const VoronoiTreeMap = ({ data }) => {
                   })}
                 </g>
                 <g>
-                  {allNodes
+                  {cells
                     .filter((node) => node.data.word)
                     .map((node) => {
-                      return (
-                        <RenderingText
-                          node={node}
-                          fontSize={fontSize}
-                          fontName={fontFamily}
-                          color={color}
-                        />
-                      );
+                      return <RenderingText node={node} color={fontColor} />;
                     })}
                 </g>
               </g>
