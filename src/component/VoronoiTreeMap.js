@@ -8,19 +8,25 @@ import { useEffect, useState } from "react";
 const getConvexHull = (word, fontName, fontSize) => {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
-  ctx.font = `bold ${fontSize}px '${fontName}'`;
-  canvas.width = ctx.measureText(word).width;
-  canvas.height = fontSize;
-  ctx.textBaseline = "hanging";
-  ctx.font = `bold ${fontSize}px '${fontName}'`;
-  ctx.fillText(word, 0, 0);
+  ctx.font = `${fontSize}px ${fontName}`;
+  // 単語を描画するのに十分なサイズを設定する
+  canvas.width = 100;
+  canvas.height = 100;
+  ctx.textAlign = "center";
+  ctx.font = `${fontSize}px ${fontName}`;
+  ctx.fillText(word, canvas.width / 2, canvas.height / 2);
   const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
   const points = [];
   for (let i = 0; i < canvas.height; ++i) {
     for (let j = 0; j < canvas.width; ++j) {
       if (image.data[4 * (canvas.width * i + j) + 3] > 0) {
-        points.push([j, i]);
+        const x = j - canvas.width / 2;
+        const y = i - canvas.height / 2;
+        points.push([x, y]);
+        points.push([x + 1, y]);
+        points.push([x, y + 1]);
+        points.push([x + 1, y + 1]);
       }
     }
   }
@@ -82,28 +88,11 @@ const sortVerticesClockwise = (vertice) => {
   const sortedVertices = [];
   sortedVertices.push(vertices[leftMostIndex]);
   vertices.splice(leftMostIndex, 1);
+  vertices.sort(
+    (a, b) => getAngle(sortedVertices[0], a) - getAngle(sortedVertices[0], b),
+  );
 
-  while (vertices.length > 0) {
-    let closestIndex = 0;
-    let closestAngle = getAngle(
-      sortedVertices[sortedVertices.length - 1],
-      vertices[0],
-    );
-    for (let i = 1; i < vertices.length; i++) {
-      const angle = getAngle(
-        sortedVertices[sortedVertices.length - 1],
-        vertices[i],
-      );
-      if (angle < closestAngle) {
-        closestIndex = i;
-        closestAngle = angle;
-      }
-    }
-    sortedVertices.push(vertices[closestIndex]);
-    vertices.splice(closestIndex, 1);
-  }
-
-  return sortedVertices;
+  return sortedVertices.concat(vertices);
 };
 
 //2点間の角度を求める関数
@@ -134,28 +123,23 @@ const calcResizeValue = (data, px, py, qx, qy) => {
   return [1 / S, -dx, -dy];
 };
 
-const rotate = ([qx, qy], theta) => {
+const rotate = (q, theta) => {
   const cos = Math.cos(theta);
   const sin = Math.sin(theta);
-  const rotatedQx = [];
-  const rotatedQy = [];
-  for (let i = 0; i < qx.length; i++) {
-    rotatedQx[i] = qx[i] * cos - qy[i] * sin;
-    rotatedQy[i] = qx[i] * sin + qy[i] * cos;
-  }
-  return [rotatedQx, rotatedQy];
+  return q.map(([x, y]) => [x * cos - y * sin, x * sin + y * cos]);
 };
 
 const textTransform = async (text, fontSize, fontName, polygon, glpk) => {
-  let s = 1;
+  let s = 0;
   let dx = 0;
   let dy = 0;
   let a = 0;
+  let textPolygon = null;
 
   const [px, py] = convert2DArrayTo1DArray(sortVerticesClockwise(polygon));
   const radianList = [
     -Math.PI / 2,
-    -Math.PI3 / 3,
+    -Math.PI / 3,
     -Math.PI / 6,
     0,
     Math.PI / 6,
@@ -163,11 +147,10 @@ const textTransform = async (text, fontSize, fontName, polygon, glpk) => {
     Math.PI / 2,
   ];
   for (let radian of radianList) {
-    const [qx, qy] = rotate(
-      convert2DArrayTo1DArray(
-        sortVerticesClockwise(getConvexHull(text, fontName, fontSize)),
+    const [qx, qy] = convert2DArrayTo1DArray(
+      sortVerticesClockwise(
+        rotate(getConvexHull(text, fontName, fontSize), radian),
       ),
-      radian,
     );
     const [objective, subjectTo] = makeLpObject(px, py, qx, qy);
     const options = {
@@ -188,10 +171,21 @@ const textTransform = async (text, fontSize, fontName, polygon, glpk) => {
       dx = statedx;
       dy = statedy;
       a = radian * (180 / Math.PI);
+      textPolygon = [];
+      for (let j = 0; j < qx.length; j++) {
+        let x = 0;
+        let y = 0;
+        for (let i = 0; i < px.length; i++) {
+          const lambdaName1 = `lambda${j + 1}${i + 1}`;
+          x += result.vars[lambdaName1] * px[i];
+          y += result.vars[lambdaName1] * py[i];
+        }
+        textPolygon.push([x, y]);
+      }
     }
   }
 
-  return { s, dx, dy, a };
+  return { s, dx, dy, a, polygon: textPolygon };
 };
 
 const RenderingText = ({ node, color }) => {
@@ -199,11 +193,9 @@ const RenderingText = ({ node, color }) => {
   return (
     <g key={node.id}>
       <text
-        textAnchor="start"
-        dominantBaseline="hanging"
+        textAnchor="middle"
         fontSize={node.fontSize}
         fontFamily={node.fontFamily}
-        fontWeight="bold"
         fill={color}
         transform={`translate(${dx},${dy})scale(${s})rotate(${a})`}
       >
@@ -271,13 +263,15 @@ const layoutVoronoiTreeMap = async ({ data, chartSize, glpk }) => {
   for (const node of allNodes) {
     node.fontSize = fontSize;
     node.fontFamily = fontFamily;
-    node.textTransform = await textTransform(
-      node.data.word,
-      fontSize,
-      fontFamily,
-      node.polygon,
-      glpk,
-    );
+    if (node.data.word) {
+      node.textTransform = await textTransform(
+        node.data.word,
+        fontSize,
+        fontFamily,
+        node.polygon,
+        glpk,
+      );
+    }
   }
 
   return allNodes;
@@ -293,6 +287,7 @@ const VoronoiTreeMap = ({ data }) => {
     left: 20,
   };
   const fontColor = "#444";
+  const showTextPolygon = false;
 
   useEffect(() => {
     (async () => {
@@ -332,11 +327,38 @@ const VoronoiTreeMap = ({ data }) => {
                     );
                   })}
                 </g>
+                {showTextPolygon && (
+                  <g>
+                    {cells
+                      .filter((node) => node.data.word)
+                      .map((node) => {
+                        return (
+                          <g key={node.id}>
+                            <path
+                              d={
+                                "M" + node.textTransform.polygon.join("L") + "Z"
+                              }
+                              fill="#888"
+                              opacity="0.5"
+                              stroke={fontColor}
+                              strokeWidth={node.height + 1}
+                            />
+                          </g>
+                        );
+                      })}
+                  </g>
+                )}
                 <g>
                   {cells
                     .filter((node) => node.data.word)
                     .map((node) => {
-                      return <RenderingText node={node} color={fontColor} />;
+                      return (
+                        <RenderingText
+                          key={node.id}
+                          node={node}
+                          color={fontColor}
+                        />
+                      );
                     })}
                 </g>
               </g>
