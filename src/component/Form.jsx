@@ -26,7 +26,9 @@ const Form = (props) => {
                 "n_neighbors",
                 event.target.elements.nNeighbors.value,
               );
-              const url = `${process.env.REACT_APP_SERVER_URL}/knn_graph?${params}`;
+              const url = `${
+                import.meta.env.VITE_SERVER_URL
+              }/knn_graph?${params}`;
               const response = await fetch(url, {
                 method: "POST",
                 headers: {
