@@ -1,13 +1,42 @@
 import { useRef, useState } from "react";
 import { fonts } from "../fonts";
 import { regions } from "../regions";
-//https://www.japantimes.co.jp/news/2022/11/28/national/english-speaking-test/ のニュース
-const defaultText =
-  "The Tokyo Metropolitan Board of Education on Sunday held its first English speaking test, part of the entrance examinations for metropolitan high schools. About 69,000 applicants, mainly students of public junior high schools in the capital, took the test, introduced in hopes of developing globally competitive human resources. At Hibiya High School, one of the 197 test sites, seemingly nervous junior high school third-year students were entering the building. In the 15-minute test, examinees spoke into a microphone to answer questions displayed on a tablet device. The number of applicants reached 76,000 for only students of public junior high schools, but many of them were absent or arrived late. The education board plans to hold a makeup test Dec. 18. There have been no reports of major problems, such as equipment failure, according to the board. The test was administered by educational service provider Benesse. About 670 employees of the education board were dispatched to exam sites. The results will be disclosed to exam takers online on Jan. 12. Tokyo is the first local government that has uniformly introduced an English test administered by a private organization to local public high school entrance examinations. The English speaking test has drawn opposition partly because it excludes students of national and private junior high schools. Critics also say that the grading method is not fair or transparent. Some residents have filed a lawsuit to stop public funds from being spent on the test.";
-
 const Form = (props) => {
   const formRef = useRef();
   const [loading, setLoading] = useState(false);
+
+  const fetchLanguageLinks = async (url) => {
+    const pageTitle = url.split("/").pop();
+    const lang = url.split("/")[2].split(".")[0];
+    const apiUrl = `https://${lang}.wikipedia.org/w/api.php?action=query&prop=langlinks&titles=${pageTitle}&lllang=en&format=json&origin=*`;
+    const response = await fetch(apiUrl);
+    const data = await response.json();
+    const pages = data.query.pages;
+    const pageId = Object.keys(pages)[0];
+    return pages[pageId].langlinks ? pages[pageId].langlinks[0]["*"] : null;
+  };
+
+  const fetchWikipediaData = async (url) => {
+    const lang = url.split("/")[2].split(".")[0];
+    let pageTitle;
+
+    if (lang === "en") {
+      // 英語のページの場合、直接データを取得
+      pageTitle = url.split("/").pop();
+      pageTitle = decodeURIComponent(pageTitle).replace(/_/g, " ");
+    } else {
+      // 他の言語のページの場合、言語間リンクを通じて英語版のタイトルを取得
+      pageTitle = await fetchLanguageLinks(url);
+      if (!pageTitle) return null;
+    }
+
+    const apiUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&format=json&origin=*&titles=${pageTitle}`;
+    const response = await fetch(apiUrl);
+    const data = await response.json();
+    const pageId = Object.keys(data.query.pages)[0];
+    return data.query.pages[pageId].extract;
+  };
+
   return (
     <div className="container">
       <section className="section">
@@ -20,12 +49,19 @@ const Form = (props) => {
             }
             setLoading(true);
             try {
-              const text = event.target.elements.text.value;
+              const wikiUrl = event.target.elements.wikiUrl.value;
+              let wikiData;
+              if (wikiUrl) {
+                wikiData = await fetchWikipediaData(wikiUrl);
+              }
+              const text = wikiData
+                ? wikiData
+                : event.target.elements.text.value;
               const params = new URLSearchParams();
               params.append("words", event.target.elements.words.value);
               params.append(
                 "n_neighbors",
-                event.target.elements.nNeighbors.value,
+                event.target.elements.nNeighbors.value
               );
               const url = `${
                 import.meta.env.VITE_SERVER_URL
@@ -57,10 +93,17 @@ const Form = (props) => {
           <div className="field">
             <label className="label">Input Text</label>
             <div className="control">
-              <textarea
-                name="text"
-                className="textarea"
-                defaultValue={defaultText}
+              <textarea name="text" className="textarea" />
+            </div>
+          </div>
+          <div className="field">
+            <label className="label">Wikipedia Page URL</label>
+            <div className="control">
+              <input
+                className="input"
+                name="wikiUrl"
+                type="text"
+                placeholder="Enter Wikipedia page URL"
               />
             </div>
           </div>
