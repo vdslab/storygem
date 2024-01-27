@@ -7,7 +7,7 @@ const App = () => {
   return (
     <div className="App">
       <Form setData={setData} />
-      {data && <VoronoiTreeMap data={data} />}
+      {data && <VoronoiTreeMap data={data.data} fontFamily={data.fontFamily} />}
     </div>
   );
 };

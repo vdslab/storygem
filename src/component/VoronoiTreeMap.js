@@ -3,17 +3,18 @@ import { voronoiTreemap } from "d3-voronoi-treemap";
 import GLPK from "glpk.js";
 import { makeLpObject } from "../lp";
 import { useEffect, useState } from "react";
+import { fontSize } from "../fonts";
 
 //単語の凸包を求める関数
-const getConvexHull = (word, fontName, fontSize) => {
+const getConvexHull = (word, fontFamily) => {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
-  ctx.font = `${fontSize}px ${fontName}`;
+  ctx.font = `${fontSize}px ${fontFamily}`;
   // 単語を描画するのに十分なサイズを設定する
   canvas.width = 100;
   canvas.height = 100;
   ctx.textAlign = "center";
-  ctx.font = `${fontSize}px ${fontName}`;
+  ctx.font = `${fontSize}px ${fontFamily}`;
   ctx.fillText(word, canvas.width / 2, canvas.height / 2);
   const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
@@ -129,7 +130,7 @@ const rotate = (q, theta) => {
   return q.map(([x, y]) => [x * cos - y * sin, x * sin + y * cos]);
 };
 
-const textTransform = async (text, fontSize, fontName, polygon, glpk) => {
+const textTransform = async (text, fontFamily, polygon, glpk) => {
   let s = 0;
   let dx = 0;
   let dy = 0;
@@ -148,9 +149,7 @@ const textTransform = async (text, fontSize, fontName, polygon, glpk) => {
   ];
   for (let radian of radianList) {
     const [qx, qy] = convert2DArrayTo1DArray(
-      sortVerticesClockwise(
-        rotate(getConvexHull(text, fontName, fontSize), radian),
-      ),
+      sortVerticesClockwise(rotate(getConvexHull(text, fontFamily), radian)),
     );
     const [objective, subjectTo] = makeLpObject(px, py, qx, qy);
     const options = {
@@ -194,7 +193,7 @@ const RenderingText = ({ node, color }) => {
     <g key={node.id}>
       <text
         textAnchor="middle"
-        fontSize={node.fontSize}
+        fontSize={fontSize}
         fontFamily={node.fontFamily}
         fill={color}
         transform={`translate(${dx},${dy})scale(${s})rotate(${a})`}
@@ -205,7 +204,7 @@ const RenderingText = ({ node, color }) => {
   );
 };
 
-const layoutVoronoiTreeMap = async ({ data, chartSize, glpk }) => {
+const layoutVoronoiTreeMap = async ({ data, chartSize, fontFamily, glpk }) => {
   const weightScale = d3
     .scaleLinear()
     .domain(d3.extent(data, (d) => d.weight))
@@ -258,15 +257,11 @@ const layoutVoronoiTreeMap = async ({ data, chartSize, glpk }) => {
 
   const allNodes = root.descendants().sort((a, b) => b.depth - a.depth);
 
-  const fontSize = 10;
-  const fontFamily = "serif";
   for (const node of allNodes) {
-    node.fontSize = fontSize;
     node.fontFamily = fontFamily;
     if (node.data.word) {
       node.textTransform = await textTransform(
         node.data.word,
-        fontSize,
         fontFamily,
         node.polygon,
         glpk,
@@ -277,7 +272,7 @@ const layoutVoronoiTreeMap = async ({ data, chartSize, glpk }) => {
   return allNodes;
 };
 
-const VoronoiTreeMap = ({ data }) => {
+const VoronoiTreeMap = ({ data, fontFamily }) => {
   const [cells, setCells] = useState(null);
   const chartSize = 1000;
   const margin = {
@@ -292,10 +287,15 @@ const VoronoiTreeMap = ({ data }) => {
   useEffect(() => {
     (async () => {
       const glpk = await GLPK();
-      const cells = await layoutVoronoiTreeMap({ data, chartSize, glpk });
+      const cells = await layoutVoronoiTreeMap({
+        data,
+        chartSize,
+        fontFamily,
+        glpk,
+      });
       setCells(cells);
     })();
-  }, [data, chartSize]);
+  }, [data, chartSize, fontFamily]);
 
   if (cells == null) {
     return null;
