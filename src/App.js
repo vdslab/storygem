@@ -10,6 +10,7 @@ const App = () => {
       {data && (
         <VoronoiTreeMap
           data={data.data}
+          outsideRegion={data.outsideRegion}
           fontFamily={data.fontFamily}
           allowRotate={data.allowRotate}
         />

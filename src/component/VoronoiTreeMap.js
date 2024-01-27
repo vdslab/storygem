@@ -90,7 +90,7 @@ const sortVerticesClockwise = (vertice) => {
   sortedVertices.push(vertices[leftMostIndex]);
   vertices.splice(leftMostIndex, 1);
   vertices.sort(
-    (a, b) => getAngle(sortedVertices[0], a) - getAngle(sortedVertices[0], b),
+    (a, b) => getAngle(sortedVertices[0], a) - getAngle(sortedVertices[0], b)
   );
 
   return sortedVertices.concat(vertices);
@@ -149,7 +149,7 @@ const textTransform = async (text, fontFamily, polygon, allowRotate, glpk) => {
   }
   for (let radian of radianList) {
     const [qx, qy] = convert2DArrayTo1DArray(
-      sortVerticesClockwise(rotate(getConvexHull(text, fontFamily), radian)),
+      sortVerticesClockwise(rotate(getConvexHull(text, fontFamily), radian))
     );
     const [objective, subjectTo] = makeLpObject(px, py, qx, qy);
     const options = {
@@ -162,7 +162,7 @@ const textTransform = async (text, fontFamily, polygon, allowRotate, glpk) => {
         objective: objective,
         subjectTo: subjectTo,
       },
-      options,
+      options
     );
     const [stateS, statedx, statedy] = calcResizeValue(result, px, py, qx, qy);
     if (stateS > s) {
@@ -207,6 +207,7 @@ const RenderingText = ({ node, color }) => {
 const layoutVoronoiTreeMap = async ({
   data,
   chartSize,
+  outsideRegion,
   fontFamily,
   allowRotate,
   glpk,
@@ -233,20 +234,46 @@ const layoutVoronoiTreeMap = async ({
     }
   }
 
-  const chartR = chartSize / 2;
+  const regions = {
+    Rectangle: null,
+    Square: null,
+    Hexagon: 6,
+    Octagon: 8,
+    Circle: 100,
+  };
   const yScale = 1;
-  const numberOfSides = 8;
-  const dt = (2 * Math.PI) / numberOfSides;
-  const ellipse = d3
-    .range(numberOfSides)
-    .map((item) => [
-      chartR * Math.cos(item * dt),
-      yScale * chartR * Math.sin(item * dt),
-    ]);
+  let outSide = [];
+  if (regions[outsideRegion] !== null) {
+    const chartR = chartSize / 2;
+    const numberOfSides = regions[outsideRegion];
+    const dt = (2 * Math.PI) / numberOfSides;
+    outSide = d3
+      .range(numberOfSides)
+      .map((item) => [
+        chartR * Math.cos(item * dt),
+        yScale * chartR * Math.sin(item * dt),
+      ]);
+  } else {
+    const quadrilaterals = {
+      Rectangle: [
+        [0, 0],
+        [0, 500],
+        [1000, 500],
+        [1000, 0],
+      ],
+      Square: [
+        [0, 0],
+        [0, 1000],
+        [1000, 1000],
+        [1000, 0],
+      ],
+    };
+    outSide = quadrilaterals[outsideRegion];
+  }
 
   const prng = d3.randomLcg(0);
   const _voronoiTreemap = voronoiTreemap()
-    .clip(ellipse)
+    .clip(outSide)
     .convergenceRatio(0.001)
     .maxIterationCount(50)
     .minWeightRatio(0.01)
@@ -271,7 +298,7 @@ const layoutVoronoiTreeMap = async ({
         fontFamily,
         node.polygon,
         allowRotate,
-        glpk,
+        glpk
       );
     }
   }
@@ -279,7 +306,7 @@ const layoutVoronoiTreeMap = async ({
   return allNodes;
 };
 
-const VoronoiTreeMap = ({ data, fontFamily, allowRotate }) => {
+const VoronoiTreeMap = ({ data, outsideRegion, fontFamily, allowRotate }) => {
   const [cells, setCells] = useState(null);
   const chartSize = 1000;
   const margin = {
@@ -288,6 +315,8 @@ const VoronoiTreeMap = ({ data, fontFamily, allowRotate }) => {
     bottom: 20,
     left: 20,
   };
+  const translateValueOfOutsideRegion =
+    ["Rectangle", "Square"].indexOf(outsideRegion) === -1 ? chartSize / 2 : 0;
   const fontColor = "#444";
   const showTextPolygon = false;
 
@@ -297,13 +326,14 @@ const VoronoiTreeMap = ({ data, fontFamily, allowRotate }) => {
       const cells = await layoutVoronoiTreeMap({
         data,
         chartSize,
+        outsideRegion,
         fontFamily,
         allowRotate,
         glpk,
       });
       setCells(cells);
     })();
-  }, [data, chartSize, fontFamily, allowRotate]);
+  }, [data, outsideRegion, chartSize, fontFamily, allowRotate]);
 
   if (cells == null) {
     return null;
@@ -320,7 +350,9 @@ const VoronoiTreeMap = ({ data, fontFamily, allowRotate }) => {
             }`}
           >
             <g transform={`translate(${margin.left},${margin.top})`}>
-              <g transform={`translate(${chartSize / 2},${chartSize / 2})`}>
+              <g
+                transform={`translate(${translateValueOfOutsideRegion},${translateValueOfOutsideRegion})`}
+              >
                 <g>
                   {cells.map((node) => {
                     return (
