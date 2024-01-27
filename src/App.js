@@ -11,7 +11,7 @@ const App = () => {
         <VoronoiTreeMap
           data={data.data}
           fontFamily={data.fontFamily}
-          allowRotate={data.allowRotate}
+          rotateStep={data.rotateStep}
         />
       )}
     </div>

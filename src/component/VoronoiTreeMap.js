@@ -130,7 +130,7 @@ const rotate = (q, theta) => {
   return q.map(([x, y]) => [x * cos - y * sin, x * sin + y * cos]);
 };
 
-const textTransform = async (text, fontFamily, polygon, allowRotate, glpk) => {
+const textTransform = async (text, fontFamily, polygon, rotateStep, glpk) => {
   let s = 0;
   let dx = 0;
   let dy = 0;
@@ -139,13 +139,11 @@ const textTransform = async (text, fontFamily, polygon, allowRotate, glpk) => {
 
   const [px, py] = convert2DArrayTo1DArray(sortVerticesClockwise(polygon));
   const radianList = [0];
-  if (allowRotate) {
-    radianList.push(-Math.PI / 2);
-    radianList.push(-Math.PI / 3);
-    radianList.push(-Math.PI / 6);
-    radianList.push(Math.PI / 6);
-    radianList.push(Math.PI / 3);
-    radianList.push(Math.PI / 2);
+  if (rotateStep) {
+    for (let t = rotateStep; t <= 90; t += rotateStep) {
+      radianList.push((Math.PI * t) / 180);
+      radianList.push((-Math.PI * t) / 180);
+    }
   }
   for (let radian of radianList) {
     const [qx, qy] = convert2DArrayTo1DArray(
@@ -208,7 +206,7 @@ const layoutVoronoiTreeMap = async ({
   data,
   chartSize,
   fontFamily,
-  allowRotate,
+  rotateStep,
   glpk,
 }) => {
   const weightScale = d3
@@ -270,7 +268,7 @@ const layoutVoronoiTreeMap = async ({
         node.data.word,
         fontFamily,
         node.polygon,
-        allowRotate,
+        rotateStep,
         glpk,
       );
     }
@@ -279,7 +277,7 @@ const layoutVoronoiTreeMap = async ({
   return allNodes;
 };
 
-const VoronoiTreeMap = ({ data, fontFamily, allowRotate }) => {
+const VoronoiTreeMap = ({ data, fontFamily, rotateStep }) => {
   const [cells, setCells] = useState(null);
   const chartSize = 1000;
   const margin = {
@@ -298,12 +296,12 @@ const VoronoiTreeMap = ({ data, fontFamily, allowRotate }) => {
         data,
         chartSize,
         fontFamily,
-        allowRotate,
+        rotateStep,
         glpk,
       });
       setCells(cells);
     })();
-  }, [data, chartSize, fontFamily, allowRotate]);
+  }, [data, chartSize, fontFamily, rotateStep]);
 
   if (cells == null) {
     return null;
