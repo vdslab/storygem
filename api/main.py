@@ -63,7 +63,7 @@ def w2v_knn_graph_en(word_count, max_words, n_neighbors, distance_metric):
 
 
 def cluster_words(graph):
-    dendrogram = community_louvain.generate_dendrogram(graph)
+    dendrogram = community_louvain.generate_dendrogram(graph, randomize=False)
     dendrogram.append({k: 0 for k in set(dendrogram[-1].values())})
     data = []
     for i, layer in enumerate(dendrogram):

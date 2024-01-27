@@ -12,7 +12,7 @@ const App = () => {
           data={data.data}
           outsideRegion={data.outsideRegion}
           fontFamily={data.fontFamily}
-          allowRotate={data.allowRotate}
+          rotateStep={data.rotateStep}
         />
       )}
     </div>

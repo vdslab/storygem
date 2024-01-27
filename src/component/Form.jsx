@@ -27,7 +27,9 @@ const Form = (props) => {
                 "n_neighbors",
                 event.target.elements.nNeighbors.value
               );
-              const url = `${process.env.REACT_APP_SERVER_URL}/knn_graph?${params}`;
+              const url = `${
+                import.meta.env.VITE_SERVER_URL
+              }/knn_graph?${params}`;
               const response = await fetch(url, {
                 method: "POST",
                 headers: {
@@ -36,11 +38,12 @@ const Form = (props) => {
                 body: text,
               });
               const data = await response.json();
+              const rotate = event.target.elements.rotate.value;
               props.setData({
                 data,
                 outsideRegion: event.target.elements.ousideRegion.value,
                 fontFamily: event.target.elements.fontFamily.value,
-                allowRotate: event.target.elements.allowRotate.checked,
+                rotateStep: rotate === "none" ? null : +rotate,
               });
             } catch (e) {
               console.error(e);
@@ -102,6 +105,20 @@ const Form = (props) => {
             </div>
           </div>
           <div className="field">
+            <label className="label">Rotate</label>
+            <div className="control">
+              <div className="select is-fullwidth">
+                <select name="rotate" defaultValue="30">
+                  <option value="none">None</option>
+                  <option value="10">Steps every 10°</option>
+                  <option value="15">Steps every 15°</option>
+                  <option value="30">Steps every 30°</option>
+                  <option value="45">Steps every 45°</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div className="field">
             <label className="label">Font Family</label>
             <div className="control">
               <div className="select is-fullwidth">
@@ -115,14 +132,6 @@ const Form = (props) => {
                   })}
                 </select>
               </div>
-            </div>
-          </div>
-          <div className="field">
-            <div className="control">
-              <label className="checkbox">
-                <input type="checkbox" name="allowRotate" defaultChecked />{" "}
-                Allow rotate
-              </label>
             </div>
           </div>
           <div className="field is-grouped">
