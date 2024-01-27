@@ -38,6 +38,7 @@ const Form = (props) => {
               props.setData({
                 data,
                 fontFamily: event.target.elements.fontFamily.value,
+                allowRotate: event.target.elements.allowRotate.checked,
               });
             } catch (e) {
               console.error(e);
@@ -96,6 +97,14 @@ const Form = (props) => {
                   })}
                 </select>
               </div>
+            </div>
+          </div>
+          <div className="field">
+            <div className="control">
+              <label className="checkbox">
+                <input type="checkbox" name="allowRotate" defaultChecked />{" "}
+                Allow rotate
+              </label>
             </div>
           </div>
           <div className="field is-grouped">

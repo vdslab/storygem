@@ -130,7 +130,7 @@ const rotate = (q, theta) => {
   return q.map(([x, y]) => [x * cos - y * sin, x * sin + y * cos]);
 };
 
-const textTransform = async (text, fontFamily, polygon, glpk) => {
+const textTransform = async (text, fontFamily, polygon, allowRotate, glpk) => {
   let s = 0;
   let dx = 0;
   let dy = 0;
@@ -138,15 +138,15 @@ const textTransform = async (text, fontFamily, polygon, glpk) => {
   let textPolygon = null;
 
   const [px, py] = convert2DArrayTo1DArray(sortVerticesClockwise(polygon));
-  const radianList = [
-    -Math.PI / 2,
-    -Math.PI / 3,
-    -Math.PI / 6,
-    0,
-    Math.PI / 6,
-    Math.PI / 3,
-    Math.PI / 2,
-  ];
+  const radianList = [0];
+  if (allowRotate) {
+    radianList.push(-Math.PI / 2);
+    radianList.push(-Math.PI / 3);
+    radianList.push(-Math.PI / 6);
+    radianList.push(Math.PI / 6);
+    radianList.push(Math.PI / 3);
+    radianList.push(Math.PI / 2);
+  }
   for (let radian of radianList) {
     const [qx, qy] = convert2DArrayTo1DArray(
       sortVerticesClockwise(rotate(getConvexHull(text, fontFamily), radian)),
@@ -204,7 +204,13 @@ const RenderingText = ({ node, color }) => {
   );
 };
 
-const layoutVoronoiTreeMap = async ({ data, chartSize, fontFamily, glpk }) => {
+const layoutVoronoiTreeMap = async ({
+  data,
+  chartSize,
+  fontFamily,
+  allowRotate,
+  glpk,
+}) => {
   const weightScale = d3
     .scaleLinear()
     .domain(d3.extent(data, (d) => d.weight))
@@ -264,6 +270,7 @@ const layoutVoronoiTreeMap = async ({ data, chartSize, fontFamily, glpk }) => {
         node.data.word,
         fontFamily,
         node.polygon,
+        allowRotate,
         glpk,
       );
     }
@@ -272,7 +279,7 @@ const layoutVoronoiTreeMap = async ({ data, chartSize, fontFamily, glpk }) => {
   return allNodes;
 };
 
-const VoronoiTreeMap = ({ data, fontFamily }) => {
+const VoronoiTreeMap = ({ data, fontFamily, allowRotate }) => {
   const [cells, setCells] = useState(null);
   const chartSize = 1000;
   const margin = {
@@ -291,11 +298,12 @@ const VoronoiTreeMap = ({ data, fontFamily }) => {
         data,
         chartSize,
         fontFamily,
+        allowRotate,
         glpk,
       });
       setCells(cells);
     })();
-  }, [data, chartSize, fontFamily]);
+  }, [data, chartSize, fontFamily, allowRotate]);
 
   if (cells == null) {
     return null;
