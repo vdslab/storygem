@@ -13,6 +13,7 @@ const App = () => {
           outsideRegion={data.outsideRegion}
           fontFamily={data.fontFamily}
           rotateStep={data.rotateStep}
+          allowHyphenation={data.allowHyphenation}
         />
       )}
     </div>

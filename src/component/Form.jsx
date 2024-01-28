@@ -25,7 +25,7 @@ const Form = (props) => {
               params.append("words", event.target.elements.words.value);
               params.append(
                 "n_neighbors",
-                event.target.elements.nNeighbors.value
+                event.target.elements.nNeighbors.value,
               );
               const url = `${
                 import.meta.env.VITE_SERVER_URL
@@ -44,6 +44,8 @@ const Form = (props) => {
                 outsideRegion: event.target.elements.ousideRegion.value,
                 fontFamily: event.target.elements.fontFamily.value,
                 rotateStep: rotate === "none" ? null : +rotate,
+                allowHyphenation:
+                  event.target.elements.allowHyphenation.checked,
               });
             } catch (e) {
               console.error(e);
@@ -132,6 +134,14 @@ const Form = (props) => {
                   })}
                 </select>
               </div>
+            </div>
+          </div>
+          <div className="field">
+            <div className="control">
+              <label className="checkbox">
+                <input type="checkbox" name="allowHyphenation" /> Allow
+                hyphenation
+              </label>
             </div>
           </div>
           <div className="field is-grouped">

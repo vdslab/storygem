@@ -4,6 +4,7 @@ import GLPK from "glpk.js";
 import { makeLpObject } from "../lp";
 import { useEffect, useState } from "react";
 import { fontSize } from "../fonts";
+import { hyphenateSync as hyphenate } from "hyphen/en";
 
 //単語の凸包を求める関数
 const getConvexHull = (word, fontFamily) => {
@@ -13,17 +14,20 @@ const getConvexHull = (word, fontFamily) => {
   // 単語を描画するのに十分なサイズを設定する
   canvas.width = 100;
   canvas.height = 100;
-  ctx.textAlign = "center";
+  const dx = 10;
+  const dy = canvas.height / 2;
   ctx.font = `${fontSize}px ${fontFamily}`;
-  ctx.fillText(word, canvas.width / 2, canvas.height / 2);
+  word.forEach((line, i) => {
+    ctx.fillText(line, dx, dy + fontSize * i);
+  });
   const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
   const points = [];
   for (let i = 0; i < canvas.height; ++i) {
     for (let j = 0; j < canvas.width; ++j) {
       if (image.data[4 * (canvas.width * i + j) + 3] > 0) {
-        const x = j - canvas.width / 2;
-        const y = i - canvas.height / 2;
+        const x = j - dx;
+        const y = i - dy;
         points.push([x, y]);
         points.push([x + 1, y]);
         points.push([x, y + 1]);
@@ -90,7 +94,7 @@ const sortVerticesClockwise = (vertice) => {
   sortedVertices.push(vertices[leftMostIndex]);
   vertices.splice(leftMostIndex, 1);
   vertices.sort(
-    (a, b) => getAngle(sortedVertices[0], a) - getAngle(sortedVertices[0], b)
+    (a, b) => getAngle(sortedVertices[0], a) - getAngle(sortedVertices[0], b),
   );
 
   return sortedVertices.concat(vertices);
@@ -130,11 +134,40 @@ const rotate = (q, theta) => {
   return q.map(([x, y]) => [x * cos - y * sin, x * sin + y * cos]);
 };
 
-const textTransform = async (text, fontFamily, polygon, rotateStep, glpk) => {
+const hyphenatedLines = (text) => {
+  const result = [];
+  const parts = hyphenate(text, { hyphenChar: " " }).split(" ");
+  const m = parts.length - 1;
+  for (let x = 1; x < 1 << m; ++x) {
+    let lines = [];
+    let line = parts[0];
+    for (let i = 0; i < m; ++i) {
+      if ((x & (1 << i)) > 0) {
+        lines.push(line + "-");
+        line = parts[i + 1];
+      } else {
+        line += parts[i + 1];
+      }
+    }
+    lines.push(line);
+    result.push(lines);
+  }
+  return result;
+};
+
+const textTransform = async (
+  text,
+  fontFamily,
+  polygon,
+  rotateStep,
+  allowHyphenation,
+  glpk,
+) => {
   let s = 0;
   let dx = 0;
   let dy = 0;
   let a = 0;
+  let resultText = null;
   let textPolygon = null;
 
   const [px, py] = convert2DArrayTo1DArray(sortVerticesClockwise(polygon));
@@ -145,59 +178,79 @@ const textTransform = async (text, fontFamily, polygon, rotateStep, glpk) => {
       radianList.push((-Math.PI * t) / 180);
     }
   }
+  const separatedTexts = [[text]];
+  if (allowHyphenation) {
+    for (const lines of hyphenatedLines(text)) {
+      separatedTexts.push(lines);
+    }
+  }
   for (let radian of radianList) {
-    const [qx, qy] = convert2DArrayTo1DArray(
-      sortVerticesClockwise(rotate(getConvexHull(text, fontFamily), radian))
-    );
-    const [objective, subjectTo] = makeLpObject(px, py, qx, qy);
-    const options = {
-      msglev: glpk.GLP_MSG_ERR,
-      presol: false,
-    };
-    const { result } = await glpk.solve(
-      {
-        name: "LP",
-        objective: objective,
-        subjectTo: subjectTo,
-      },
-      options
-    );
-    const [stateS, statedx, statedy] = calcResizeValue(result, px, py, qx, qy);
-    if (stateS > s) {
-      s = stateS;
-      dx = statedx;
-      dy = statedy;
-      a = radian * (180 / Math.PI);
-      textPolygon = [];
-      for (let j = 0; j < qx.length; j++) {
-        let x = 0;
-        let y = 0;
-        for (let i = 0; i < px.length; i++) {
-          const lambdaName1 = `lambda${j + 1}${i + 1}`;
-          x += result.vars[lambdaName1] * px[i];
-          y += result.vars[lambdaName1] * py[i];
+    for (const lines of separatedTexts) {
+      const [qx, qy] = convert2DArrayTo1DArray(
+        sortVerticesClockwise(rotate(getConvexHull(lines, fontFamily), radian)),
+      );
+      const [objective, subjectTo] = makeLpObject(px, py, qx, qy);
+      const options = {
+        msglev: glpk.GLP_MSG_ERR,
+        presol: false,
+      };
+      const { result } = await glpk.solve(
+        {
+          name: "LP",
+          objective: objective,
+          subjectTo: subjectTo,
+        },
+        options,
+      );
+      const [stateS, statedx, statedy] = calcResizeValue(
+        result,
+        px,
+        py,
+        qx,
+        qy,
+      );
+      if (stateS > s) {
+        s = stateS;
+        dx = statedx;
+        dy = statedy;
+        a = radian * (180 / Math.PI);
+        resultText = lines;
+        textPolygon = [];
+        for (let j = 0; j < qx.length; j++) {
+          let x = 0;
+          let y = 0;
+          for (let i = 0; i < px.length; i++) {
+            const lambdaName1 = `lambda${j + 1}${i + 1}`;
+            x += result.vars[lambdaName1] * px[i];
+            y += result.vars[lambdaName1] * py[i];
+          }
+          textPolygon.push([x, y]);
         }
-        textPolygon.push([x, y]);
       }
     }
   }
 
-  return { s, dx, dy, a, polygon: textPolygon };
+  return { s, dx, dy, a, polygon: textPolygon, lines: resultText };
 };
 
 const RenderingText = ({ node, color }) => {
-  const { s, dx, dy, a } = node.textTransform;
+  const { s, dx, dy, a, lines } = node.textTransform;
   return (
     <g key={node.id}>
-      <text
-        textAnchor="middle"
-        fontSize={fontSize}
-        fontFamily={node.fontFamily}
-        fill={color}
-        transform={`translate(${dx},${dy})scale(${s})rotate(${a})`}
-      >
-        {node.data.word}
-      </text>
+      {lines.map((line, i) => {
+        return (
+          <text
+            key={i}
+            fontSize={fontSize}
+            fontFamily={node.fontFamily}
+            fill={color}
+            transform={`translate(${dx},${dy})scale(${s})rotate(${a})`}
+            y={fontSize * i}
+          >
+            {line}
+          </text>
+        );
+      })}
     </g>
   );
 };
@@ -208,6 +261,7 @@ const layoutVoronoiTreeMap = async ({
   outsideRegion,
   fontFamily,
   rotateStep,
+  allowHyphenation,
   glpk,
 }) => {
   const weightScale = d3
@@ -296,6 +350,7 @@ const layoutVoronoiTreeMap = async ({
         fontFamily,
         node.polygon,
         rotateStep,
+        allowHyphenation,
         glpk,
       );
     }
@@ -304,7 +359,13 @@ const layoutVoronoiTreeMap = async ({
   return allNodes;
 };
 
-const VoronoiTreeMap = ({ data, outsideRegion, fontFamily, rotateStep }) => {
+const VoronoiTreeMap = ({
+  data,
+  outsideRegion,
+  fontFamily,
+  rotateStep,
+  allowHyphenation,
+}) => {
   const [cells, setCells] = useState(null);
   const chartSize = 1000;
   const margin = {
@@ -316,7 +377,7 @@ const VoronoiTreeMap = ({ data, outsideRegion, fontFamily, rotateStep }) => {
   const translateValueOfOutsideRegion =
     ["Rectangle", "Square"].indexOf(outsideRegion) === -1 ? chartSize / 2 : 0;
   const fontColor = "#444";
-  const showTextPolygon = false;
+  const showTextPolygon = true;
 
   useEffect(() => {
     (async () => {
@@ -327,11 +388,19 @@ const VoronoiTreeMap = ({ data, outsideRegion, fontFamily, rotateStep }) => {
         outsideRegion,
         fontFamily,
         rotateStep,
+        allowHyphenation,
         glpk,
       });
       setCells(cells);
     })();
-  }, [data, outsideRegion, chartSize, fontFamily, rotateStep]);
+  }, [
+    data,
+    outsideRegion,
+    chartSize,
+    fontFamily,
+    rotateStep,
+    allowHyphenation,
+  ]);
 
   if (cells == null) {
     return null;
