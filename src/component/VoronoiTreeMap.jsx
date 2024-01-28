@@ -377,7 +377,7 @@ const VoronoiTreeMap = ({
   const translateValueOfOutsideRegion =
     ["Rectangle", "Square"].indexOf(outsideRegion) === -1 ? chartSize / 2 : 0;
   const fontColor = "#444";
-  const showTextPolygon = true;
+  const showTextPolygon = false;
 
   useEffect(() => {
     (async () => {
