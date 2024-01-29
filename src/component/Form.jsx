@@ -4,6 +4,22 @@ import { regions } from "../regions";
 const Form = (props) => {
   const formRef = useRef();
   const [loading, setLoading] = useState(false);
+  const [wikiUrl, setWikiUrl] = useState("https://en.wikipedia.org/wiki/Cat");
+
+  // ランダムなWikipediaのURLを取得する関数
+  const fetchRandomWikipediaUrl = async () => {
+    const apiUrl = `https://en.wikipedia.org/w/api.php?action=query&list=random&rnnamespace=0&rnlimit=1&format=json&origin=*`;
+    const response = await fetch(apiUrl);
+    const data = await response.json();
+    const pageTitle = data.query.random[0].title;
+    return `https://en.wikipedia.org/wiki/${encodeURIComponent(pageTitle)}`;
+  };
+
+  // ランダムなURLをフォームにセットするイベントハンドラ
+  const handleRandomClick = async () => {
+    const randomUrl = await fetchRandomWikipediaUrl();
+    setWikiUrl(randomUrl);
+  };
 
   const fetchLanguageLinks = async (url) => {
     const pageTitle = url.split("/").pop();
@@ -103,9 +119,13 @@ const Form = (props) => {
                 className="input"
                 name="wikiUrl"
                 type="text"
-                defaultValue={"https://en.wikipedia.org/wiki/Cat"}
+                value={wikiUrl}
+                onChange={(e) => setWikiUrl(e.target.value)}
                 placeholder="Enter Wikipedia page URL"
               />
+              <button type="button" onClick={handleRandomClick}>
+                Get Random pages
+              </button>
             </div>
           </div>
           <div className="field">
