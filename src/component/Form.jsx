@@ -103,6 +103,7 @@ const Form = (props) => {
                 className="input"
                 name="wikiUrl"
                 type="text"
+                defaultValue={"https://en.wikipedia.org/wiki/Cat"}
                 placeholder="Enter Wikipedia page URL"
               />
             </div>
