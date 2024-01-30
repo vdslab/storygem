@@ -32,7 +32,7 @@ def tokenize_en(text):
         elif pos.startswith('VB'):
             word = lemmatizer.lemmatize(token, 'v')
         if word and word not in stopwords:
-            yield word
+            yield word.lower()
 
 
 def tokenize_ja(text):
