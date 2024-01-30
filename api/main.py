@@ -3,33 +3,14 @@ import os
 from community import community_louvain
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-import gensim
-import gensim.downloader
 import networkx as nx
-import nltk
-from nltk.stem.wordnet import WordNetLemmatizer
 from scipy.spatial.distance import pdist, squareform
 from sklearn.neighbors import NearestNeighbors
+from tokenizer import tokenize
+import word_vectors
 
 app = Flask(__name__)
 CORS(app)
-
-model = gensim.downloader.load('word2vec-google-news-300')
-
-
-def tokenize_en(text):
-    stopwords = set(nltk.corpus.stopwords.words('english'))
-    lemmatizer = WordNetLemmatizer()
-    for token, pos in nltk.pos_tag(nltk.word_tokenize(text)):
-        word = None
-        if pos.startswith('NN'):
-            word = lemmatizer.lemmatize(token, 'n')
-        elif pos.startswith('JJ'):
-            word = lemmatizer.lemmatize(token, 'a')
-        elif pos.startswith('VB'):
-            word = lemmatizer.lemmatize(token, 'v')
-        if word and word not in stopwords:
-            yield word
 
 
 def count_words(words):
@@ -41,20 +22,22 @@ def count_words(words):
     return word_count
 
 
-def w2v_knn_graph_en(word_count, max_words, n_neighbors, distance_metric):
-    words = sorted(
-        [(word, count / model.get_vecattr(word, 'count'))
-         for word, count in word_count.items() if word in model],
-        key=lambda row: row[1], reverse=True)[:max_words]
-    word_vectors = [model[word] for word, _ in words]
-    distance_matrix = squareform(pdist(word_vectors, distance_metric))
+def w2v_knn_graph_en(word_count, max_words, n_neighbors, lang, distance_metric):
+    words = list(word_count.keys())
+    model_frequency = word_vectors.find_word_frequency(words, lang)
+    words = [word for word in words if word in model_frequency]
+    words.sort(key=lambda word: word_count[word] / model_frequency[word], reverse=True)
+    words = words[:max_words]
+    wv = word_vectors.find_word_vectors(words, lang)
+    distance_matrix = squareform(pdist(wv, distance_metric))
     knn = NearestNeighbors(n_neighbors=n_neighbors,
-                           algorithm='ball_tree').fit(word_vectors)
-    knn_graph = knn.kneighbors_graph(word_vectors).toarray()
+                           algorithm='ball_tree').fit(wv)
+    knn_graph = knn.kneighbors_graph(wv).toarray()
 
     graph = nx.Graph()
     indices = list(range(len(words)))
-    for i, (word, weight) in zip(indices, words):
+    for i, word in enumerate(words):
+        weight = word_count[word] / model_frequency[word]
         graph.add_node(i, word=word, weight=weight)
     for i, j in itertools.combinations(indices, 2):
         if knn_graph[i, j]:
@@ -88,12 +71,13 @@ def knn_graph():
     text = request.data.decode()
     max_words = int(request.args.get('words', 100))
     n_neighbors = int(request.args.get('n_neighbors', 10))
+    lang = request.args.get('lang', 'en')
 
     app.logger.info('start')
-    word_count = count_words(tokenize_en(text))
+    word_count = count_words(tokenize(text, lang))
     app.logger.info('tokenize')
     graph = w2v_knn_graph_en(word_count, max_words,
-                             n_neighbors, distance_metric='cosine')
+                             n_neighbors, lang, distance_metric='cosine')
     app.logger.info('graph construction')
     data = cluster_words(graph)
     app.logger.info('clustering')
