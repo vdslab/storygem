@@ -240,7 +240,7 @@ const Form = (props) => {
             <label className="label">Font Family</label>
             <div className="control">
               <div className="select is-fullwidth">
-                <select name="fontFamily" defaultValue={fonts[0]}>
+                <select name="fontFamily" defaultValue={fonts[1]}>
                   {fonts.map((font) => {
                     return (
                       <option key={font} value={font}>
