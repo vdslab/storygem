@@ -18,23 +18,20 @@ const fetchWikipediaData = async (url) => {
   let pageTitle;
 
   if (lang === "en") {
-    // 英語のページの場合、直接データを取得
     pageTitle = url.split("/").pop();
     pageTitle = decodeURIComponent(pageTitle).replace(/_/g, " ");
   } else {
-    // 他の言語のページの場合、言語間リンクを通じて英語版のタイトルを取得
     pageTitle = await fetchLanguageLinks(url);
     if (!pageTitle) return null;
   }
 
-  const apiUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&format=json&origin=*&titles=${pageTitle}`;
+  const apiUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext&format=json&origin=*&titles=${pageTitle}`;
   const response = await fetch(apiUrl);
   const data = await response.json();
   const pageId = Object.keys(data.query.pages)[0];
   return data.query.pages[pageId].extract;
 };
 
-// ランダムなWikipediaのURLを取得する関数
 const fetchRandomWikipediaUrl = async () => {
   const apiUrl =
     "https://en.wikipedia.org/w/api.php?action=query&list=random&rnnamespace=0&rnlimit=1&format=json&origin=*";
