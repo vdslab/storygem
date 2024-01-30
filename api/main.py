@@ -8,6 +8,7 @@ from scipy.spatial.distance import pdist, squareform
 from sklearn.neighbors import NearestNeighbors
 from tokenizer import tokenize
 import word_vectors
+import weight_functions
 
 app = Flask(__name__)
 CORS(app)
@@ -21,12 +22,20 @@ def count_words(words):
         word_count[word] += 1
     return word_count
 
+def weight_function(word_count, model_frequency, weight_type):
+    if weight_type == 'tf':
+        return weight_functions.Tf(word_count)
+    if weight_type == 'tf-idf':
+        return weight_functions.TfIdf(word_count, model_frequency)
+    raise Exception('Unsupported weight type')
 
-def w2v_knn_graph_en(word_count, max_words, n_neighbors, lang, distance_metric):
+
+def w2v_knn_graph_en(word_count, max_words, n_neighbors, lang, distance_metric, weight_type):
     words = list(word_count.keys())
     model_frequency = word_vectors.find_word_frequency(words, lang)
+    weight = weight_function(word_count, model_frequency, weight_type)
     words = [word for word in words if word in model_frequency]
-    words.sort(key=lambda word: word_count[word] / model_frequency[word], reverse=True)
+    words.sort(key=lambda word: weight(word), reverse=True)
     words = words[:max_words]
     wv = word_vectors.find_word_vectors(words, lang)
     distance_matrix = squareform(pdist(wv, distance_metric))
@@ -37,8 +46,7 @@ def w2v_knn_graph_en(word_count, max_words, n_neighbors, lang, distance_metric):
     graph = nx.Graph()
     indices = list(range(len(words)))
     for i, word in enumerate(words):
-        weight = word_count[word] / model_frequency[word]
-        graph.add_node(i, word=word, weight=weight)
+        graph.add_node(i, word=word, weight=weight(word))
     for i, j in itertools.combinations(indices, 2):
         if knn_graph[i, j]:
             graph.add_edge(i, j, weight=distance_matrix[i, j])
@@ -71,13 +79,16 @@ def knn_graph():
     text = request.data.decode()
     max_words = int(request.args.get('words', 100))
     n_neighbors = int(request.args.get('n_neighbors', 10))
+    weight_type = request.args.get('weight', 'tf-idf')
     lang = request.args.get('lang', 'en')
 
     app.logger.info('start')
     word_count = count_words(tokenize(text, lang))
     app.logger.info('tokenize')
-    graph = w2v_knn_graph_en(word_count, max_words,
-                             n_neighbors, lang, distance_metric='cosine')
+    graph = w2v_knn_graph_en(
+        word_count, max_words, n_neighbors,
+        lang=lang, distance_metric='cosine', weight_type=weight_type
+    )
     app.logger.info('graph construction')
     data = cluster_words(graph)
     app.logger.info('clustering')

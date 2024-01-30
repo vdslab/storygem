@@ -77,6 +77,7 @@ const Form = (props) => {
                 event.target.elements.nNeighbors.value,
               );
               params.append("lang", event.target.elements.lang.value);
+              params.append("weight", event.target.elements.weight.value);
               const url = `${
                 import.meta.env.VITE_SERVER_URL
               }/knn_graph?${params}`;
@@ -195,6 +196,17 @@ const Form = (props) => {
                 step="1"
                 defaultValue="10"
               />
+            </div>
+          </div>
+          <div className="field">
+            <label className="label">Word Weight</label>
+            <div className="control">
+              <div className="select is-fullwidth">
+                <select name="weight" defaultValue="tf-idf">
+                  <option value="tf">TF</option>
+                  <option value="tf-idf">TF-IDF</option>
+                </select>
+              </div>
             </div>
           </div>
           <div className="field">
