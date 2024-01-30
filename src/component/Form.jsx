@@ -8,7 +8,8 @@ const Form = (props) => {
 
   // ランダムなWikipediaのURLを取得する関数
   const fetchRandomWikipediaUrl = async () => {
-    const apiUrl = `https://en.wikipedia.org/w/api.php?action=query&list=random&rnnamespace=0&rnlimit=1&format=json&origin=*`;
+    const apiUrl =
+      "https://en.wikipedia.org/w/api.php?action=query&list=random&rnnamespace=0&rnlimit=1&format=json&origin=*";
     const response = await fetch(apiUrl);
     const data = await response.json();
     const pageTitle = data.query.random[0].title;
@@ -77,8 +78,9 @@ const Form = (props) => {
               params.append("words", event.target.elements.words.value);
               params.append(
                 "n_neighbors",
-                event.target.elements.nNeighbors.value
+                event.target.elements.nNeighbors.value,
               );
+              params.append("lang", event.target.elements.lang.value);
               const url = `${
                 import.meta.env.VITE_SERVER_URL
               }/knn_graph?${params}`;
@@ -126,6 +128,17 @@ const Form = (props) => {
               <button type="button" onClick={handleRandomClick}>
                 Get Random pages
               </button>
+            </div>
+          </div>
+          <div className="field">
+            <label className="label">Language</label>
+            <div className="control">
+              <div className="select is-fullwidth">
+                <select name="lang" defaultValue="en">
+                  <option value="en">English</option>
+                  <option value="ja">Japanese</option>
+                </select>
+              </div>
             </div>
           </div>
           <div className="field">
