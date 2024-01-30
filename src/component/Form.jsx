@@ -1,58 +1,61 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { fonts } from "../fonts";
 import { regions } from "../regions";
+
+const fetchLanguageLinks = async (url) => {
+  const pageTitle = url.split("/").pop();
+  const lang = url.split("/")[2].split(".")[0];
+  const apiUrl = `https://${lang}.wikipedia.org/w/api.php?action=query&prop=langlinks&titles=${pageTitle}&lllang=en&format=json&origin=*`;
+  const response = await fetch(apiUrl);
+  const data = await response.json();
+  const pages = data.query.pages;
+  const pageId = Object.keys(pages)[0];
+  return pages[pageId].langlinks ? pages[pageId].langlinks[0]["*"] : null;
+};
+
+const fetchWikipediaData = async (url) => {
+  const lang = url.split("/")[2].split(".")[0];
+  let pageTitle;
+
+  if (lang === "en") {
+    // 英語のページの場合、直接データを取得
+    pageTitle = url.split("/").pop();
+    pageTitle = decodeURIComponent(pageTitle).replace(/_/g, " ");
+  } else {
+    // 他の言語のページの場合、言語間リンクを通じて英語版のタイトルを取得
+    pageTitle = await fetchLanguageLinks(url);
+    if (!pageTitle) return null;
+  }
+
+  const apiUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&format=json&origin=*&titles=${pageTitle}`;
+  const response = await fetch(apiUrl);
+  const data = await response.json();
+  const pageId = Object.keys(data.query.pages)[0];
+  return data.query.pages[pageId].extract;
+};
+
+// ランダムなWikipediaのURLを取得する関数
+const fetchRandomWikipediaUrl = async () => {
+  const apiUrl =
+    "https://en.wikipedia.org/w/api.php?action=query&list=random&rnnamespace=0&rnlimit=1&format=json&origin=*";
+  const response = await fetch(apiUrl);
+  const data = await response.json();
+  const pageTitle = data.query.random[0].title;
+  return `https://en.wikipedia.org/wiki/${encodeURIComponent(pageTitle)}`;
+};
+
 const Form = (props) => {
   const formRef = useRef();
   const [loading, setLoading] = useState(false);
-  const [wikiUrl, setWikiUrl] = useState("https://en.wikipedia.org/wiki/Cat");
 
-  // ランダムなWikipediaのURLを取得する関数
-  const fetchRandomWikipediaUrl = async () => {
-    const apiUrl =
-      "https://en.wikipedia.org/w/api.php?action=query&list=random&rnnamespace=0&rnlimit=1&format=json&origin=*";
-    const response = await fetch(apiUrl);
-    const data = await response.json();
-    const pageTitle = data.query.random[0].title;
-    return `https://en.wikipedia.org/wiki/${encodeURIComponent(pageTitle)}`;
-  };
-
-  // ランダムなURLをフォームにセットするイベントハンドラ
-  const handleRandomClick = async () => {
-    const randomUrl = await fetchRandomWikipediaUrl();
-    setWikiUrl(randomUrl);
-  };
-
-  const fetchLanguageLinks = async (url) => {
-    const pageTitle = url.split("/").pop();
-    const lang = url.split("/")[2].split(".")[0];
-    const apiUrl = `https://${lang}.wikipedia.org/w/api.php?action=query&prop=langlinks&titles=${pageTitle}&lllang=en&format=json&origin=*`;
-    const response = await fetch(apiUrl);
-    const data = await response.json();
-    const pages = data.query.pages;
-    const pageId = Object.keys(pages)[0];
-    return pages[pageId].langlinks ? pages[pageId].langlinks[0]["*"] : null;
-  };
-
-  const fetchWikipediaData = async (url) => {
-    const lang = url.split("/")[2].split(".")[0];
-    let pageTitle;
-
-    if (lang === "en") {
-      // 英語のページの場合、直接データを取得
-      pageTitle = url.split("/").pop();
-      pageTitle = decodeURIComponent(pageTitle).replace(/_/g, " ");
-    } else {
-      // 他の言語のページの場合、言語間リンクを通じて英語版のタイトルを取得
-      pageTitle = await fetchLanguageLinks(url);
-      if (!pageTitle) return null;
-    }
-
-    const apiUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&format=json&origin=*&titles=${pageTitle}`;
-    const response = await fetch(apiUrl);
-    const data = await response.json();
-    const pageId = Object.keys(data.query.pages)[0];
-    return data.query.pages[pageId].extract;
-  };
+  useEffect(() => {
+    (async () => {
+      const text = await fetchWikipediaData(
+        "https://en.wikipedia.org/wiki/Cat",
+      );
+      formRef.current.elements.text.value = text;
+    })();
+  }, []);
 
   return (
     <div className="container">
@@ -66,14 +69,7 @@ const Form = (props) => {
             }
             setLoading(true);
             try {
-              const wikiUrl = event.target.elements.wikiUrl.value;
-              let wikiData;
-              if (wikiUrl) {
-                wikiData = await fetchWikipediaData(wikiUrl);
-              }
-              const text = wikiData
-                ? wikiData
-                : event.target.elements.text.value;
+              const text = event.target.elements.text.value;
               const params = new URLSearchParams();
               params.append("words", event.target.elements.words.value);
               params.append(
@@ -114,19 +110,53 @@ const Form = (props) => {
               <textarea name="text" className="textarea" />
             </div>
           </div>
-          <div className="field">
-            <label className="label">Wikipedia Page URL</label>
+          <div className="field is-grouped">
             <div className="control">
-              <input
-                className="input"
-                name="wikiUrl"
-                type="text"
-                value={wikiUrl}
-                onChange={(e) => setWikiUrl(e.target.value)}
-                placeholder="Enter Wikipedia page URL"
-              />
-              <button type="button" onClick={handleRandomClick}>
-                Get Random pages
+              <div className="file is-light is-small">
+                <label className="file-label">
+                  <input
+                    className="file-input"
+                    type="file"
+                    onChange={(event) => {
+                      const file = event.target.files[0];
+                      const reader = new FileReader();
+                      reader.onload = (event) => {
+                        formRef.current.elements.text.value =
+                          event.target.result;
+                      };
+                      reader.readAsText(file);
+                    }}
+                  />
+                  <span className="file-cta">
+                    <span className="file-label">Load from File</span>
+                  </span>
+                </label>
+              </div>
+            </div>
+            <div className="control">
+              <button
+                className="button is-light is-small"
+                onClick={async (event) => {
+                  event.preventDefault();
+                  const url = prompt("Enter Wikipedia URL");
+                  const text = await fetchWikipediaData(url);
+                  formRef.current.elements.text.value = text;
+                }}
+              >
+                Fetch Wikipedia page
+              </button>
+            </div>
+            <div className="control">
+              <button
+                className="button is-light is-small"
+                onClick={async (event) => {
+                  event.preventDefault();
+                  const url = await fetchRandomWikipediaUrl();
+                  const text = await fetchWikipediaData(url);
+                  formRef.current.elements.text.value = text;
+                }}
+              >
+                Fetch random Wikipedia page
               </button>
             </div>
           </div>
@@ -221,29 +251,7 @@ const Form = (props) => {
               </label>
             </div>
           </div>
-          <div className="field is-grouped">
-            <div className="control">
-              <div className="file">
-                <label className="file-label">
-                  <input
-                    className="file-input"
-                    type="file"
-                    onChange={(event) => {
-                      const file = event.target.files[0];
-                      const reader = new FileReader();
-                      reader.onload = (event) => {
-                        formRef.current.elements.text.value =
-                          event.target.result;
-                      };
-                      reader.readAsText(file);
-                    }}
-                  />
-                  <span className="file-cta">
-                    <span className="file-label">Load from File</span>
-                  </span>
-                </label>
-              </div>
-            </div>
+          <div className="field">
             <div className="control">
               <button
                 className={`button is-dark${loading ? " is-loading" : ""}`}
