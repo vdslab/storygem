@@ -6,8 +6,8 @@ from flask_cors import CORS
 import networkx as nx
 from scipy.spatial.distance import pdist, squareform
 from sklearn.neighbors import NearestNeighbors
-from tokenize import tokenize
-from word_vectors import find_word_vectors
+from tokenizer import tokenize
+import word_vectors
 
 app = Flask(__name__)
 CORS(app)
@@ -23,19 +23,21 @@ def count_words(words):
 
 
 def w2v_knn_graph_en(word_count, max_words, n_neighbors, lang, distance_metric):
-    words = sorted(
-        [(word, count / model.get_vecattr(word, 'count'))
-         for word, count in word_count.items() if word in model],
-        key=lambda row: row[1], reverse=True)[:max_words]
-    word_vectors = find_word_vectors(words, lang)
-    distance_matrix = squareform(pdist(word_vectors, distance_metric))
+    words = list(word_count.keys())
+    model_frequency = word_vectors.find_word_frequency(words, lang)
+    words = [word for word in words if word in model_frequency]
+    words.sort(key=lambda word: word_count[word] / model_frequency[word], reverse=True)
+    words = words[:max_words]
+    wv = word_vectors.find_word_vectors(words, lang)
+    distance_matrix = squareform(pdist(wv, distance_metric))
     knn = NearestNeighbors(n_neighbors=n_neighbors,
-                           algorithm='ball_tree').fit(word_vectors)
-    knn_graph = knn.kneighbors_graph(word_vectors).toarray()
+                           algorithm='ball_tree').fit(wv)
+    knn_graph = knn.kneighbors_graph(wv).toarray()
 
     graph = nx.Graph()
     indices = list(range(len(words)))
-    for i, (word, weight) in zip(indices, words):
+    for i, word in enumerate(words):
+        weight = word_count[word] / model_frequency[word]
         graph.add_node(i, word=word, weight=weight)
     for i, j in itertools.combinations(indices, 2):
         if knn_graph[i, j]:

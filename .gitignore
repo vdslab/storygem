@@ -183,4 +183,5 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-models
+cc.*.300.bin
+cc.*.300.bin.gz
