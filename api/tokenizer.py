@@ -9,7 +9,7 @@ def stopwords_ja():
 
 
 def stopwords_en():
-    return set(nltk.corpus.stopwords.words('english'))+list(string.punctuation)+list(map(str, range(10)))
+    return set(nltk.corpus.stopwords.words('english')+list(string.punctuation)+list(map(str, range(10))))
 
 
 def tokenize(text, lang):
