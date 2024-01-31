@@ -291,7 +291,6 @@ const RenderingText = ({ node, color }) => {
 
 const layoutVoronoiTreeMap = async ({
   data,
-  chartSize,
   outsideRegion,
   fontFamily,
   sizeOptimization,
@@ -320,59 +319,14 @@ const layoutVoronoiTreeMap = async ({
     }
   }
 
-  const regions = {
-    Rectangle: null,
-    Square: null,
-    Hexagon: 6,
-    Octagon: 8,
-    Circle: 100,
-  };
-  const yScale = 1;
-  let outSide = [];
-  if (regions[outsideRegion] !== null) {
-    const chartR = chartSize / 2;
-    const numberOfSides = regions[outsideRegion];
-    const dt = (2 * Math.PI) / numberOfSides;
-    outSide = d3
-      .range(numberOfSides)
-      .map((item) => [
-        chartR * Math.cos(item * dt),
-        yScale * chartR * Math.sin(item * dt),
-      ]);
-  } else {
-    const quadrilaterals = {
-      Rectangle: [
-        [0, 0],
-        [0, 500],
-        [1000, 500],
-        [1000, 0],
-      ],
-      Square: [
-        [0, 0],
-        [0, 1000],
-        [1000, 1000],
-        [1000, 0],
-      ],
-    };
-    outSide = quadrilaterals[outsideRegion];
-  }
-
   const prng = d3.randomLcg(0);
   const _voronoiTreemap = voronoiTreemap()
-    .clip(outSide)
+    .clip(outsideRegion)
     .convergenceRatio(0.001)
     .maxIterationCount(50)
     .minWeightRatio(0.01)
     .prng(prng);
   _voronoiTreemap(root);
-  for (const node of root.descendants()) {
-    if (node.polygon.site) {
-      node.polygon.site.y /= yScale;
-    }
-    for (const item of node.polygon) {
-      item[1] /= yScale;
-    }
-  }
 
   const allNodes = root.descendants().sort((a, b) => b.depth - a.depth);
 
@@ -400,24 +354,27 @@ const VoronoiTreeMap = ({
   colorPalette,
 }) => {
   const [cells, setCells] = useState(null);
-  const chartSize = 1000;
   const margin = {
     top: 20,
     right: 20,
     bottom: 20,
     left: 20,
   };
-  const translateValueOfOutsideRegion =
-    ["Rectangle", "Square"].indexOf(outsideRegion) === -1 ? chartSize / 2 : 0;
   const fontColor = "#444";
   const showTextPolygon = false;
+
+  const outsideLeft = Math.min(...outsideRegion.map((p) => p[0]));
+  const outsideRight = Math.max(...outsideRegion.map((p) => p[0]));
+  const outsideTop = Math.min(...outsideRegion.map((p) => p[1]));
+  const outsideBottom = Math.max(...outsideRegion.map((p) => p[1]));
+  const displayWidth = outsideRight - outsideLeft + margin.left + margin.right;
+  const displayHeight = outsideBottom - outsideTop + margin.top + margin.bottom;
 
   useEffect(() => {
     (async () => {
       const glpk = await GLPK();
       const cells = await layoutVoronoiTreeMap({
         data,
-        chartSize,
         outsideRegion,
         fontFamily,
         sizeOptimization,
@@ -426,14 +383,7 @@ const VoronoiTreeMap = ({
       });
       setCells(cells);
     })();
-  }, [
-    data,
-    outsideRegion,
-    chartSize,
-    fontFamily,
-    sizeOptimization,
-    colorPalette,
-  ]);
+  }, [data, outsideRegion, fontFamily, sizeOptimization, colorPalette]);
 
   if (cells == null) {
     return null;
@@ -445,63 +395,53 @@ const VoronoiTreeMap = ({
         <figure className="image is-square">
           <svg
             className="has-ratio"
-            viewBox={`0 0 ${chartSize + margin.left + margin.right} ${
-              chartSize + margin.top + margin.bottom
-            }`}
+            viewBox={`${outsideLeft - margin.left} ${outsideTop - margin.top} ${displayWidth} ${displayHeight}`}
           >
-            <g transform={`translate(${margin.left},${margin.top})`}>
-              <g
-                transform={`translate(${translateValueOfOutsideRegion},${translateValueOfOutsideRegion})`}
-              >
-                <g>
-                  {cells.map((node) => {
+            <g>
+              {cells.map((node) => {
+                return (
+                  <g key={node.id}>
+                    <path
+                      d={"M" + node.polygon.join("L") + "Z"}
+                      fill={node.color}
+                      stroke={fontColor}
+                      strokeWidth={node.height + 1}
+                    />
+                  </g>
+                );
+              })}
+            </g>
+            {showTextPolygon && (
+              <g>
+                {cells
+                  .filter((node) => node.data.word)
+                  .map((node) => {
                     return (
                       <g key={node.id}>
                         <path
-                          d={"M" + node.polygon.join("L") + "Z"}
-                          fill={node.color}
+                          d={"M" + node.textTransform.polygon.join("L") + "Z"}
+                          fill="#888"
+                          opacity="0.5"
                           stroke={fontColor}
                           strokeWidth={node.height + 1}
                         />
                       </g>
                     );
                   })}
-                </g>
-                {showTextPolygon && (
-                  <g>
-                    {cells
-                      .filter((node) => node.data.word)
-                      .map((node) => {
-                        return (
-                          <g key={node.id}>
-                            <path
-                              d={
-                                "M" + node.textTransform.polygon.join("L") + "Z"
-                              }
-                              fill="#888"
-                              opacity="0.5"
-                              stroke={fontColor}
-                              strokeWidth={node.height + 1}
-                            />
-                          </g>
-                        );
-                      })}
-                  </g>
-                )}
-                <g>
-                  {cells
-                    .filter((node) => node.data.word)
-                    .map((node) => {
-                      return (
-                        <RenderingText
-                          key={node.id}
-                          node={node}
-                          color={fontColor}
-                        />
-                      );
-                    })}
-                </g>
               </g>
+            )}
+            <g>
+              {cells
+                .filter((node) => node.data.word)
+                .map((node) => {
+                  return (
+                    <RenderingText
+                      key={node.id}
+                      node={node}
+                      color={fontColor}
+                    />
+                  );
+                })}
             </g>
           </svg>
         </figure>

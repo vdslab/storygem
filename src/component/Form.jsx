@@ -90,7 +90,10 @@ const Form = (props) => {
               const rotate = event.target.elements.rotate.value;
               props.setData({
                 data,
-                outsideRegion: event.target.elements.ousideRegion.value,
+                outsideRegion: regions.find(
+                  ({ label }) =>
+                    label === event.target.elements.ousideRegion.value,
+                ).points,
                 fontFamily: event.target.elements.fontFamily.value,
                 sizeOptimization:
                   event.target.elements.sizeOptimization.value === "enabled"
@@ -217,11 +220,11 @@ const Form = (props) => {
             <label className="label">Outside Region</label>
             <div className="control">
               <div className="select is-fullwidth">
-                <select name="ousideRegion" defaultValue={regions[0]}>
+                <select name="ousideRegion" defaultValue={regions[0].label}>
                   {regions.map((region) => {
                     return (
-                      <option key={region} value={region}>
-                        {region}
+                      <option key={region.label} value={region.label}>
+                        {region.label}
                       </option>
                     );
                   })}
