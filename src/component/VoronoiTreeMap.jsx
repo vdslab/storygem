@@ -392,7 +392,7 @@ const VoronoiTreeMap = ({
   return (
     <div className="container">
       <section className="section">
-        <figure className="image is-square">
+        <figure className="image">
           <svg
             className="has-ratio"
             viewBox={`${outsideLeft - margin.left} ${outsideTop - margin.top} ${displayWidth} ${displayHeight}`}
