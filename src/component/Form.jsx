@@ -294,6 +294,8 @@ const Form = (props) => {
                   disabled={!sizeOptimization}
                 >
                   <option value="none">None</option>
+                  <option value="3">Steps every 3°</option>
+                  <option value="5">Steps every 5°</option>
                   <option value="10">Steps every 10°</option>
                   <option value="15">Steps every 15°</option>
                   <option value="30">Steps every 30°</option>
