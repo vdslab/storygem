@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { fonts } from "../fonts";
+import { fonts, defaultFont } from "../fonts";
 import { regions } from "../regions";
 
 const fetchLanguageLinks = async (url) => {
@@ -232,7 +232,7 @@ const Form = (props) => {
             <label className="label">Font Family</label>
             <div className="control">
               <div className="select is-fullwidth">
-                <select name="fontFamily" defaultValue={fonts[1]}>
+                <select name="fontFamily" defaultValue={defaultFont}>
                   {fonts.map((font) => {
                     return (
                       <option key={font} value={font}>
