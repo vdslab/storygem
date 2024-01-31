@@ -353,6 +353,7 @@ const VoronoiTreeMap = ({
   fontFamily,
   sizeOptimization,
   colorPalette,
+  showTextPolygon,
 }) => {
   const [cells, setCells] = useState(null);
   const margin = {
@@ -362,7 +363,6 @@ const VoronoiTreeMap = ({
     left: 20,
   };
   const fontColor = "#444";
-  const showTextPolygon = false;
 
   const outsideLeft = Math.min(...outsideRegion.map((p) => p[0]));
   const outsideRight = Math.max(...outsideRegion.map((p) => p[0]));
