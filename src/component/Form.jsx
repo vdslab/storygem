@@ -115,7 +115,7 @@ const Form = (props) => {
               <textarea name="text" className="textarea" />
             </div>
           </div>
-          <div className="field is-grouped">
+          <div className="field is-grouped is-grouped-multiline">
             <div className="control">
               <div className="file is-light is-small">
                 <label className="file-label">
