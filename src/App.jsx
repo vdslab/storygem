@@ -13,6 +13,7 @@ const App = () => {
           outsideRegion={data.outsideRegion}
           fontFamily={data.fontFamily}
           sizeOptimization={data.sizeOptimization}
+          colorPalette={data.colorPalette}
         />
       )}
     </div>

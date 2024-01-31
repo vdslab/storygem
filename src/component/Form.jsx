@@ -100,6 +100,7 @@ const Form = (props) => {
                           event.target.elements.hyphenation.value === "enabled",
                       }
                     : null,
+                colorPalette: event.target.elements.colorPalette.value,
               });
             } catch (e) {
               console.error(e);
@@ -240,6 +241,25 @@ const Form = (props) => {
                       </option>
                     );
                   })}
+                </select>
+              </div>
+            </div>
+          </div>
+          <div className="field">
+            <label className="label">Color Palette</label>
+            <div className="control">
+              <div className="select is-fullwidth">
+                <select name="colorPalette" defaultValue="schemeTableau10">
+                  <option value="schemeCategory10">Category10</option>
+                  <option value="schemeAccent">Accent</option>
+                  <option value="schemeDark2">Dark2</option>
+                  <option value="schemePaired">Paired</option>
+                  <option value="schemePastel1">Pastel1</option>
+                  <option value="schemePastel2">Pastel2</option>
+                  <option value="schemeSet1">Set1</option>
+                  <option value="schemeSet2">Set2</option>
+                  <option value="schemeSet3">Set3</option>
+                  <option value="schemeTableau10">Tableau10</option>
                 </select>
               </div>
             </div>

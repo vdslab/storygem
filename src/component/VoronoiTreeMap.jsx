@@ -295,6 +295,7 @@ const layoutVoronoiTreeMap = async ({
   outsideRegion,
   fontFamily,
   sizeOptimization,
+  colorPalette,
   glpk,
 }) => {
   const weightScale = d3
@@ -306,7 +307,7 @@ const layoutVoronoiTreeMap = async ({
   d3.hierarchy(root);
   root.sum((d) => weightScale(d.weight));
 
-  const colorScale = d3.scaleOrdinal(d3.schemeTableau10);
+  const colorScale = d3.scaleOrdinal(d3[colorPalette]);
   root.color = "none";
   for (const cluster of root.children) {
     const color = colorScale(cluster.id);
@@ -396,6 +397,7 @@ const VoronoiTreeMap = ({
   outsideRegion,
   fontFamily,
   sizeOptimization,
+  colorPalette,
 }) => {
   const [cells, setCells] = useState(null);
   const chartSize = 1000;
@@ -419,11 +421,19 @@ const VoronoiTreeMap = ({
         outsideRegion,
         fontFamily,
         sizeOptimization,
+        colorPalette,
         glpk,
       });
       setCells(cells);
     })();
-  }, [data, outsideRegion, chartSize, fontFamily, sizeOptimization]);
+  }, [
+    data,
+    outsideRegion,
+    chartSize,
+    fontFamily,
+    sizeOptimization,
+    colorPalette,
+  ]);
 
   if (cells == null) {
     return null;
