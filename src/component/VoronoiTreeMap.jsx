@@ -159,78 +159,112 @@ const textTransform = async (
   text,
   fontFamily,
   polygon,
-  rotateStep,
-  allowHyphenation,
+  sizeOptimization,
   glpk,
 ) => {
-  let s = 0;
-  let dx = 0;
-  let dy = 0;
-  let a = 0;
-  let resultText = null;
-  let textPolygon = null;
+  if (sizeOptimization) {
+    const { rotateStep, allowHyphenation } = sizeOptimization;
+    let s = 0;
+    let dx = 0;
+    let dy = 0;
+    let a = 0;
+    let resultText = null;
+    let textPolygon = null;
 
-  const [px, py] = convert2DArrayTo1DArray(sortVerticesClockwise(polygon));
-  const radianList = [0];
-  if (rotateStep) {
-    for (let t = rotateStep; t <= 90; t += rotateStep) {
-      radianList.push((Math.PI * t) / 180);
-      radianList.push((-Math.PI * t) / 180);
+    const [px, py] = convert2DArrayTo1DArray(sortVerticesClockwise(polygon));
+    const radianList = [0];
+    if (rotateStep) {
+      for (let t = rotateStep; t <= 90; t += rotateStep) {
+        radianList.push((Math.PI * t) / 180);
+        radianList.push((-Math.PI * t) / 180);
+      }
     }
-  }
-  const separatedTexts = [[text]];
-  if (allowHyphenation) {
-    for (const lines of hyphenatedLines(text)) {
-      separatedTexts.push(lines);
+    const separatedTexts = [[text]];
+    if (allowHyphenation) {
+      for (const lines of hyphenatedLines(text)) {
+        separatedTexts.push(lines);
+      }
     }
-  }
-  for (let radian of radianList) {
-    for (const lines of separatedTexts) {
-      const [qx, qy] = convert2DArrayTo1DArray(
-        sortVerticesClockwise(rotate(getConvexHull(lines, fontFamily), radian)),
-      );
-      const [objective, subjectTo] = makeLpObject(px, py, qx, qy);
-      const options = {
-        msglev: glpk.GLP_MSG_ERR,
-        presol: false,
-      };
-      const { result } = await glpk.solve(
-        {
-          name: "LP",
-          objective: objective,
-          subjectTo: subjectTo,
-        },
-        options,
-      );
-      const [stateS, statedx, statedy] = calcResizeValue(
-        result,
-        px,
-        py,
-        qx,
-        qy,
-      );
-      if (stateS > s) {
-        s = stateS;
-        dx = statedx;
-        dy = statedy;
-        a = radian * (180 / Math.PI);
-        resultText = lines;
-        textPolygon = [];
-        for (let j = 0; j < qx.length; j++) {
-          let x = 0;
-          let y = 0;
-          for (let i = 0; i < px.length; i++) {
-            const lambdaName1 = `lambda${j + 1}${i + 1}`;
-            x += result.vars[lambdaName1] * px[i];
-            y += result.vars[lambdaName1] * py[i];
+    for (let radian of radianList) {
+      for (const lines of separatedTexts) {
+        const [qx, qy] = convert2DArrayTo1DArray(
+          sortVerticesClockwise(
+            rotate(getConvexHull(lines, fontFamily), radian),
+          ),
+        );
+        const [objective, subjectTo] = makeLpObject(px, py, qx, qy);
+        const options = {
+          msglev: glpk.GLP_MSG_ERR,
+          presol: false,
+        };
+        const { result } = await glpk.solve(
+          {
+            name: "LP",
+            objective: objective,
+            subjectTo: subjectTo,
+          },
+          options,
+        );
+        const [stateS, statedx, statedy] = calcResizeValue(
+          result,
+          px,
+          py,
+          qx,
+          qy,
+        );
+        if (stateS > s) {
+          s = stateS;
+          dx = statedx;
+          dy = statedy;
+          a = radian * (180 / Math.PI);
+          resultText = lines;
+          textPolygon = [];
+          for (let j = 0; j < qx.length; j++) {
+            let x = 0;
+            let y = 0;
+            for (let i = 0; i < px.length; i++) {
+              const lambdaName1 = `lambda${j + 1}${i + 1}`;
+              x += result.vars[lambdaName1] * px[i];
+              y += result.vars[lambdaName1] * py[i];
+            }
+            textPolygon.push([x, y]);
           }
-          textPolygon.push([x, y]);
         }
       }
     }
-  }
 
-  return { s, dx, dy, a, polygon: textPolygon, lines: resultText };
+    return { s, dx, dy, a, polygon: textPolygon, lines: resultText };
+  } else {
+    const [cx, cy] = d3.polygonCentroid(polygon);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    ctx.font = `${fontSize}px ${fontFamily}`;
+    const measure = ctx.measureText(text);
+    const r0 = Math.hypot(measure.width / 2, fontSize / 2);
+    let r = Infinity;
+    for (let i = 0; i < polygon.length; ++i) {
+      const [x1, y1] = polygon[i];
+      const [x2, y2] = polygon[(i + 1) % polygon.length];
+      const a = y2 - y1;
+      const b = x1 - x2;
+      const c = -(a * x1 + b * y1);
+      r = Math.min(r, Math.abs(a * cx + b * cy + c) / Math.hypot(a, b) - 2);
+    }
+    const s = r / r0;
+    return {
+      s,
+      dx: cx - s * (measure.width / 2),
+      dy: cy - s * (fontSize / 2 - measure.actualBoundingBoxAscent),
+      a: 0,
+      polygon: [
+        [cx - s * (measure.width / 2), cy - s * (fontSize / 2)],
+        [cx - s * (measure.width / 2), cy + s * (fontSize / 2)],
+        [cx + s * (measure.width / 2), cy + s * (fontSize / 2)],
+        [cx + s * (measure.width / 2), cy - s * (fontSize / 2)],
+      ],
+      lines: [text],
+    };
+  }
 };
 
 const RenderingText = ({ node, color }) => {
@@ -260,8 +294,7 @@ const layoutVoronoiTreeMap = async ({
   chartSize,
   outsideRegion,
   fontFamily,
-  rotateStep,
-  allowHyphenation,
+  sizeOptimization,
   glpk,
 }) => {
   const weightScale = d3
@@ -349,8 +382,7 @@ const layoutVoronoiTreeMap = async ({
         node.data.word,
         fontFamily,
         node.polygon,
-        rotateStep,
-        allowHyphenation,
+        sizeOptimization,
         glpk,
       );
     }
@@ -363,8 +395,7 @@ const VoronoiTreeMap = ({
   data,
   outsideRegion,
   fontFamily,
-  rotateStep,
-  allowHyphenation,
+  sizeOptimization,
 }) => {
   const [cells, setCells] = useState(null);
   const chartSize = 1000;
@@ -387,20 +418,12 @@ const VoronoiTreeMap = ({
         chartSize,
         outsideRegion,
         fontFamily,
-        rotateStep,
-        allowHyphenation,
+        sizeOptimization,
         glpk,
       });
       setCells(cells);
     })();
-  }, [
-    data,
-    outsideRegion,
-    chartSize,
-    fontFamily,
-    rotateStep,
-    allowHyphenation,
-  ]);
+  }, [data, outsideRegion, chartSize, fontFamily, sizeOptimization]);
 
   if (cells == null) {
     return null;

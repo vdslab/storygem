@@ -12,8 +12,7 @@ const App = () => {
           data={data.data}
           outsideRegion={data.outsideRegion}
           fontFamily={data.fontFamily}
-          rotateStep={data.rotateStep}
-          allowHyphenation={data.allowHyphenation}
+          sizeOptimization={data.sizeOptimization}
         />
       )}
     </div>
