@@ -28,10 +28,11 @@ const getConvexHull = (word, fontFamily) => {
       if (image.data[4 * (canvas.width * i + j) + 3] > 0) {
         const x = j - dx;
         const y = i - dy;
-        points.push([x, y]);
-        points.push([x + 1, y]);
-        points.push([x, y + 1]);
-        points.push([x + 1, y + 1]);
+        const margin = 1.5;
+        points.push([x + 0.5 - margin, y + 0.5 - margin]);
+        points.push([x + 0.5 + margin, y + 0.5 - margin]);
+        points.push([x + 0.5 - margin, y + 0.5 + margin]);
+        points.push([x + 0.5 + margin, y + 0.5 + margin]);
       }
     }
   }
