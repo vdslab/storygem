@@ -179,143 +179,163 @@ const Form = (props) => {
               </div>
             </div>
           </div>
-          <div className="field">
-            <label className="label">Number of Words</label>
-            <div className="control">
-              <input
-                className="input"
-                name="words"
-                type="number"
-                min="1"
-                step="1"
-                defaultValue="100"
-              />
-            </div>
-          </div>
-          <div className="field">
-            <label className="label">Number of Neighbors</label>
-            <div className="control">
-              <input
-                className="input"
-                name="nNeighbors"
-                type="number"
-                min="1"
-                step="1"
-                defaultValue="10"
-              />
-            </div>
-          </div>
-          <div className="field">
-            <label className="label">Word Weight</label>
-            <div className="control">
-              <div className="select is-fullwidth">
-                <select name="weight" defaultValue="tf-idf">
-                  <option value="tf">TF</option>
-                  <option value="tf-idf">TF-IDF</option>
-                </select>
+          <div className="columns is-multiline">
+            <div className="column is-4">
+              <div className="field">
+                <label className="label">Number of Words</label>
+                <div className="control">
+                  <input
+                    className="input"
+                    name="words"
+                    type="number"
+                    min="1"
+                    step="1"
+                    defaultValue="100"
+                  />
+                </div>
               </div>
             </div>
-          </div>
-          <div className="field">
-            <label className="label">Outside Region</label>
-            <div className="control">
-              <div className="select is-fullwidth">
-                <select name="ousideRegion" defaultValue={regions[0].label}>
-                  {regions.map((region) => {
-                    return (
-                      <option key={region.label} value={region.label}>
-                        {region.label}
-                      </option>
-                    );
-                  })}
-                </select>
+            <div className="column is-4">
+              <div className="field">
+                <label className="label">Number of Neighbors</label>
+                <div className="control">
+                  <input
+                    className="input"
+                    name="nNeighbors"
+                    type="number"
+                    min="1"
+                    step="1"
+                    defaultValue="10"
+                  />
+                </div>
               </div>
             </div>
-          </div>
-          <div className="field">
-            <label className="label">Font Family</label>
-            <div className="control">
-              <div className="select is-fullwidth">
-                <select name="fontFamily" defaultValue={defaultFont}>
-                  {fonts.map((font) => {
-                    return (
-                      <option key={font} value={font}>
-                        {font}
-                      </option>
-                    );
-                  })}
-                </select>
+            <div className="column is-4">
+              <div className="field">
+                <label className="label">Word Weight</label>
+                <div className="control">
+                  <div className="select is-fullwidth">
+                    <select name="weight" defaultValue="tf-idf">
+                      <option value="tf">TF</option>
+                      <option value="tf-idf">TF-IDF</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="field">
-            <label className="label">Color Palette</label>
-            <div className="control">
-              <div className="select is-fullwidth">
-                <select name="colorPalette" defaultValue="schemeSet3">
-                  <option value="schemeCategory10">Category10</option>
-                  <option value="schemeAccent">Accent</option>
-                  <option value="schemeDark2">Dark2</option>
-                  <option value="schemePaired">Paired</option>
-                  <option value="schemePastel1">Pastel1</option>
-                  <option value="schemePastel2">Pastel2</option>
-                  <option value="schemeSet1">Set1</option>
-                  <option value="schemeSet2">Set2</option>
-                  <option value="schemeSet3">Set3</option>
-                  <option value="schemeTableau10">Tableau10</option>
-                </select>
+            <div className="column is-4">
+              <div className="field">
+                <label className="label">Outside Region</label>
+                <div className="control">
+                  <div className="select is-fullwidth">
+                    <select name="ousideRegion" defaultValue={regions[0].label}>
+                      {regions.map((region) => {
+                        return (
+                          <option key={region.label} value={region.label}>
+                            {region.label}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="field">
-            <label className="label">Font Size Optimization</label>
-            <div className="control">
-              <div className="select is-fullwidth">
-                <select
-                  name="sizeOptimization"
-                  defaultValue="enabled"
-                  onChange={(event) => {
-                    setSizeOptimization(event.target.value === "enabled");
-                  }}
-                >
-                  <option value="enabled">Enabled</option>
-                  <option value="disabled">Disabled</option>
-                </select>
+            <div className="column is-4">
+              <div className="field">
+                <label className="label">Font Family</label>
+                <div className="control">
+                  <div className="select is-fullwidth">
+                    <select name="fontFamily" defaultValue={defaultFont}>
+                      {fonts.map((font) => {
+                        return (
+                          <option key={font} value={font}>
+                            {font}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="field">
-            <label className="label">Rotate</label>
-            <div className="control">
-              <div className="select is-fullwidth">
-                <select
-                  name="rotate"
-                  defaultValue="30"
-                  disabled={!sizeOptimization}
-                >
-                  <option value="none">None</option>
-                  <option value="3">Steps every 3°</option>
-                  <option value="5">Steps every 5°</option>
-                  <option value="10">Steps every 10°</option>
-                  <option value="15">Steps every 15°</option>
-                  <option value="30">Steps every 30°</option>
-                  <option value="45">Steps every 45°</option>
-                </select>
+            <div className="column is-4">
+              <div className="field">
+                <label className="label">Color Palette</label>
+                <div className="control">
+                  <div className="select is-fullwidth">
+                    <select name="colorPalette" defaultValue="schemeSet3">
+                      <option value="schemeCategory10">Category10</option>
+                      <option value="schemeAccent">Accent</option>
+                      <option value="schemeDark2">Dark2</option>
+                      <option value="schemePaired">Paired</option>
+                      <option value="schemePastel1">Pastel1</option>
+                      <option value="schemePastel2">Pastel2</option>
+                      <option value="schemeSet1">Set1</option>
+                      <option value="schemeSet2">Set2</option>
+                      <option value="schemeSet3">Set3</option>
+                      <option value="schemeTableau10">Tableau10</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="field">
-            <label className="label">Hyphenation</label>
-            <div className="control">
-              <div className="select is-fullwidth">
-                <select
-                  name="hyphenation"
-                  defaultValue="disabled"
-                  disabled={!sizeOptimization}
-                >
-                  <option value="enabled">Enabled</option>
-                  <option value="disabled">Disabled</option>
-                </select>
+            <div className="column is-4">
+              <div className="field">
+                <label className="label">Font Size Optimization</label>
+                <div className="control">
+                  <div className="select is-fullwidth">
+                    <select
+                      name="sizeOptimization"
+                      defaultValue="enabled"
+                      onChange={(event) => {
+                        setSizeOptimization(event.target.value === "enabled");
+                      }}
+                    >
+                      <option value="enabled">Enabled</option>
+                      <option value="disabled">Disabled</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="column is-4">
+              <div className="field">
+                <label className="label">Rotate</label>
+                <div className="control">
+                  <div className="select is-fullwidth">
+                    <select
+                      name="rotate"
+                      defaultValue="30"
+                      disabled={!sizeOptimization}
+                    >
+                      <option value="none">None</option>
+                      <option value="3">Steps every 3°</option>
+                      <option value="5">Steps every 5°</option>
+                      <option value="10">Steps every 10°</option>
+                      <option value="15">Steps every 15°</option>
+                      <option value="30">Steps every 30°</option>
+                      <option value="45">Steps every 45°</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="column is-4">
+              <div className="field">
+                <label className="label">Hyphenation</label>
+                <div className="control">
+                  <div className="select is-fullwidth">
+                    <select
+                      name="hyphenation"
+                      defaultValue="disabled"
+                      disabled={!sizeOptimization}
+                    >
+                      <option value="enabled">Enabled</option>
+                      <option value="disabled">Disabled</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
