@@ -2,9 +2,10 @@ import * as d3 from "d3";
 import { voronoiTreemap } from "d3-voronoi-treemap";
 import GLPK from "glpk.js";
 import { makeLpObject } from "../lp";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { fontSize } from "../fonts";
 import { hyphenateSync as hyphenate } from "hyphen/en";
+import { SVGConverter } from "../image";
 
 //単語の凸包を求める関数
 const getConvexHull = (word, fontFamily) => {
@@ -290,6 +291,13 @@ const RenderingText = ({ node, color }) => {
   );
 };
 
+const download = (url, filename) => {
+  const link = document.createElement("a");
+  link.download = filename;
+  link.href = url;
+  link.click();
+};
+
 const layoutVoronoiTreeMap = async ({
   data,
   outsideRegion,
@@ -355,21 +363,8 @@ const VoronoiTreeMap = ({
   colorPalette,
   showTextPolygon,
 }) => {
+  const svgRef = useRef();
   const [cells, setCells] = useState(null);
-  const margin = {
-    top: 20,
-    right: 20,
-    bottom: 20,
-    left: 20,
-  };
-  const fontColor = "#444";
-
-  const outsideLeft = Math.min(...outsideRegion.map((p) => p[0]));
-  const outsideRight = Math.max(...outsideRegion.map((p) => p[0]));
-  const outsideTop = Math.min(...outsideRegion.map((p) => p[1]));
-  const outsideBottom = Math.max(...outsideRegion.map((p) => p[1]));
-  const displayWidth = outsideRight - outsideLeft + margin.left + margin.right;
-  const displayHeight = outsideBottom - outsideTop + margin.top + margin.bottom;
 
   useEffect(() => {
     (async () => {
@@ -390,11 +385,27 @@ const VoronoiTreeMap = ({
     return null;
   }
 
+  const maxHeight = Math.max(...cells.map((cell) => cell.height + 1));
+  const fontColor = "#444";
+  const margin = {
+    top: maxHeight / 2,
+    right: maxHeight / 2,
+    bottom: maxHeight / 2,
+    left: maxHeight / 2,
+  };
+  const outsideLeft = Math.min(...outsideRegion.map((p) => p[0]));
+  const outsideRight = Math.max(...outsideRegion.map((p) => p[0]));
+  const outsideTop = Math.min(...outsideRegion.map((p) => p[1]));
+  const outsideBottom = Math.max(...outsideRegion.map((p) => p[1]));
+  const displayWidth = outsideRight - outsideLeft + margin.left + margin.right;
+  const displayHeight = outsideBottom - outsideTop + margin.top + margin.bottom;
+
   return (
     <div className="container">
       <section className="section">
         <figure className="image">
           <svg
+            ref={svgRef}
             className="has-ratio"
             viewBox={`${outsideLeft - margin.left} ${outsideTop - margin.top} ${displayWidth} ${displayHeight}`}
           >
@@ -446,6 +457,47 @@ const VoronoiTreeMap = ({
             </g>
           </svg>
         </figure>
+        <div className="field is-grouped">
+          <div className="control">
+            <button
+              className="button is-light is-small"
+              onClick={async () => {
+                const converter = await SVGConverter.loadFromElement(
+                  svgRef.current,
+                );
+                download(await converter.svgURL(), "image.svg");
+              }}
+            >
+              Save as SVG
+            </button>
+          </div>
+          <div className="control">
+            <button
+              className="button is-light is-small"
+              onClick={async () => {
+                const converter = await SVGConverter.loadFromElement(
+                  svgRef.current,
+                );
+                download(await converter.pngURL(), "image.png");
+              }}
+            >
+              Save as PNG
+            </button>
+          </div>
+          <div className="control">
+            <button
+              className="button is-light is-small"
+              onClick={async () => {
+                const converter = await SVGConverter.loadFromElement(
+                  svgRef.current,
+                );
+                download(await converter.jpegURL(), "image.jpeg");
+              }}
+            >
+              Save as JPEG
+            </button>
+          </div>
+        </div>
       </section>
     </div>
   );
