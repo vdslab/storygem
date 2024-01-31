@@ -252,7 +252,7 @@ const Form = (props) => {
             <label className="label">Color Palette</label>
             <div className="control">
               <div className="select is-fullwidth">
-                <select name="colorPalette" defaultValue="schemeTableau10">
+                <select name="colorPalette" defaultValue="schemeSet3">
                   <option value="schemeCategory10">Category10</option>
                   <option value="schemeAccent">Accent</option>
                   <option value="schemeDark2">Dark2</option>
