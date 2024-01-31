@@ -113,8 +113,8 @@ const calcResizeValue = (data, px, py, qx, qy) => {
   let resizeX = [0, 0],
     resizeY = [0, 0];
   for (let i = 0; i < px.length; i++) {
-    const lambdaName1 = `lambda1${i + 1}`;
-    const lambdaName2 = `lambda2${i + 1}`;
+    const lambdaName1 = `lambda1_${i + 1}`;
+    const lambdaName2 = `lambda2_${i + 1}`;
     resizeX[0] += vars[lambdaName1] * px[i];
     resizeX[1] += vars[lambdaName2] * px[i];
     resizeY[0] += vars[lambdaName1] * py[i];
@@ -223,7 +223,7 @@ const textTransform = async (
             let x = 0;
             let y = 0;
             for (let i = 0; i < px.length; i++) {
-              const lambdaName1 = `lambda${j + 1}${i + 1}`;
+              const lambdaName1 = `lambda${j + 1}_${i + 1}`;
               x += result.vars[lambdaName1] * px[i];
               y += result.vars[lambdaName1] * py[i];
             }

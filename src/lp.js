@@ -9,7 +9,7 @@ const createObjective = (outSidesPoints) => {
   for (let i = 1; i <= 2; i++) {
     for (let j = 0; j < outSidesPoints.length; j++) {
       const coef = i === 1 ? -outSidesPoints[j] : outSidesPoints[j];
-      const name = `lambda${i}${j + 1}`;
+      const name = `lambda${i}_${j + 1}`;
       objective.vars.push({ name: name, coef: coef });
     }
   }
@@ -52,7 +52,7 @@ export const makeLpObject = (
   for (let i = 0; i < inSides; i++) {
     lambdaNames[i] = Array(outSides);
     for (let j = 0; j < outSides; j++) {
-      lambdaNames[i][j] = `lambda${i + 1}${j + 1}`;
+      lambdaNames[i][j] = `lambda${i + 1}_${j + 1}`;
     }
   }
 
@@ -89,16 +89,16 @@ export const makeLpObject = (
     const lambdaCoefsY = initlambdaCoefDict(lambdaNames);
     for (let j = 0; j < outSides; j++) {
       //xについての制約
-      lambdaCoefsX[`lambda${i + 1}${j + 1}`] +=
+      lambdaCoefsX[`lambda${i + 1}_${j + 1}`] +=
         diff1st2ndX * outsidesXPoints[j];
-      lambdaCoefsX[`lambda1${j + 1}`] += -diff2ndIX * outsidesXPoints[j];
-      lambdaCoefsX[`lambda2${j + 1}`] += diff1stIX * outsidesXPoints[j];
+      lambdaCoefsX[`lambda1_${j + 1}`] += -diff2ndIX * outsidesXPoints[j];
+      lambdaCoefsX[`lambda2_${j + 1}`] += diff1stIX * outsidesXPoints[j];
       //yについての制約
-      lambdaCoefsY[`lambda${i + 1}${j + 1}`] +=
+      lambdaCoefsY[`lambda${i + 1}_${j + 1}`] +=
         diff1st2ndX * outsidesYPoints[j];
-      lambdaCoefsY[`lambda1${j + 1}`] += -diff1st2ndX * outsidesYPoints[j];
-      lambdaCoefsY[`lambda2${j + 1}`] += diff1stIY * outsidesXPoints[j];
-      lambdaCoefsY[`lambda1${j + 1}`] += -diff1stIY * outsidesXPoints[j];
+      lambdaCoefsY[`lambda1_${j + 1}`] += -diff1st2ndX * outsidesYPoints[j];
+      lambdaCoefsY[`lambda2_${j + 1}`] += diff1stIY * outsidesXPoints[j];
+      lambdaCoefsY[`lambda1_${j + 1}`] += -diff1stIY * outsidesXPoints[j];
     }
     //制約条件のセット
     const affinXObj = initAffinObj();
