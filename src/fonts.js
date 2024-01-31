@@ -8,5 +8,6 @@ export const fonts = [
   "Rajdhani",
   "Unbounded",
   "Zen Dots",
-  "Dorsa"
+  "Dorsa",
+  "Iceberg"
 ];
