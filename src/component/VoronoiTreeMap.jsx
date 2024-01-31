@@ -12,8 +12,8 @@ const getConvexHull = (word, fontFamily) => {
   const ctx = canvas.getContext("2d");
   ctx.font = `${fontSize}px ${fontFamily}`;
   // 単語を描画するのに十分なサイズを設定する
-  canvas.width = 100;
-  canvas.height = 100;
+  canvas.width = 200;
+  canvas.height = 200;
   const dx = 10;
   const dy = canvas.height / 2;
   ctx.font = `${fontSize}px ${fontFamily}`;
