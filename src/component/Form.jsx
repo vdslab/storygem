@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { fonts, defaultFont } from "../fonts";
 import { regions } from "../regions";
+import LayoutWorker from "../worker/worker?worker";
+import { hyphenatedLines } from "../hyphenation";
+import { fontSize } from "../fonts";
 
 const fetchLanguageLinks = async (url) => {
   const pageTitle = url.split("/").pop();
@@ -41,6 +44,61 @@ const fetchRandomWikipediaUrl = async () => {
   return `https://en.wikipedia.org/wiki/${encodeURIComponent(pageTitle)}`;
 };
 
+const fetchGraph = async ({ text, words, nNeighbors, lang, weight }) => {
+  const params = new URLSearchParams();
+  params.append("words", words);
+  params.append("n_neighbors", nNeighbors);
+  params.append("lang", lang);
+  params.append("weight", weight);
+  const url = `${import.meta.env.VITE_SERVER_URL}/knn_graph?${params}`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "text/plain",
+    },
+    body: text,
+  });
+  return response.json();
+};
+
+const textImageData = (text, fontFamily) => {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  ctx.font = `${fontSize}px ${fontFamily}`;
+  // 単語を描画するのに十分なサイズを設定する
+  canvas.width = 200;
+  canvas.height = 200;
+  const dx = 10;
+  const dy = canvas.height / 2;
+  ctx.font = `${fontSize}px ${fontFamily}`;
+  text.forEach((line, i) => {
+    ctx.fillText(line, dx, dy + fontSize * i);
+  });
+  return ctx.getImageData(0, 0, canvas.width, canvas.height);
+};
+
+const textMeasure = (text, fontFamily) => {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  ctx.font = `${fontSize}px ${fontFamily}`;
+  const measure = ctx.measureText(text);
+  return {
+    width: measure.width,
+    height: measure.height,
+    actualBoundingBoxAscent: measure.actualBoundingBoxAscent,
+  };
+};
+
+const layoutVoronoiTreeMap = async (args) => {
+  return new Promise((resolve) => {
+    const worker = new LayoutWorker();
+    worker.onmessage = (event) => {
+      resolve(event.data);
+    };
+    worker.postMessage(args);
+  });
+};
+
 const Form = (props) => {
   const formRef = useRef();
   const [loading, setLoading] = useState(false);
@@ -65,46 +123,58 @@ const Form = (props) => {
             if (loading) {
               return;
             }
+            props.setData(null);
             setLoading(true);
             try {
-              const text = event.target.elements.text.value;
-              const params = new URLSearchParams();
-              params.append("words", event.target.elements.words.value);
-              params.append(
-                "n_neighbors",
-                event.target.elements.nNeighbors.value,
-              );
-              params.append("lang", event.target.elements.lang.value);
-              params.append("weight", event.target.elements.weight.value);
-              const url = `${
-                import.meta.env.VITE_SERVER_URL
-              }/knn_graph?${params}`;
-              const response = await fetch(url, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "text/plain",
-                },
-                body: text,
+              const data = await fetchGraph({
+                text: event.target.elements.text.value,
+                words: event.target.elements.words.value,
+                nNeighbors: event.target.elements.nNeighbors.value,
+                lang: event.target.elements.lang.value,
+                weight: event.target.elements.weight.value,
               });
-              const data = await response.json();
               const rotate = event.target.elements.rotate.value;
-              props.setData({
-                data,
-                outsideRegion: regions.find(
-                  ({ label }) =>
-                    label === event.target.elements.ousideRegion.value,
-                ).points,
-                fontFamily: event.target.elements.fontFamily.value,
-                sizeOptimization:
-                  event.target.elements.sizeOptimization.value === "enabled"
-                    ? {
-                        rotateStep: rotate === "none" ? null : +rotate,
-                        allowHyphenation:
-                          event.target.elements.hyphenation.value === "enabled",
+              const outsideRegion = regions.find(
+                ({ label }) =>
+                  label === event.target.elements.ousideRegion.value,
+              ).points;
+              const fontFamily = event.target.elements.fontFamily.value;
+              const sizeOptimization =
+                event.target.elements.sizeOptimization.value === "enabled"
+                  ? {
+                      rotateStep: rotate === "none" ? null : +rotate,
+                      allowHyphenation:
+                        event.target.elements.hyphenation.value === "enabled",
+                    }
+                  : null;
+              for (const item of data) {
+                if (item.word) {
+                  if (sizeOptimization == null) {
+                    item.textMeasure = textMeasure(item.word, fontFamily);
+                  } else {
+                    const separatedTexts = [[item.word]];
+                    if (sizeOptimization.allowHyphenation) {
+                      for (const lines of hyphenatedLines(item.word)) {
+                        separatedTexts.push(lines);
                       }
-                    : null,
+                    }
+                    item.wordPixels = separatedTexts.map((lines) => {
+                      return {
+                        lines,
+                        imageData: textImageData(lines, fontFamily),
+                      };
+                    });
+                  }
+                }
+              }
+              const cells = await layoutVoronoiTreeMap({
+                data,
+                outsideRegion,
+                fontFamily,
+                sizeOptimization,
                 colorPalette: event.target.elements.colorPalette.value,
               });
+              props.setData({ cells, outsideRegion });
             } catch (e) {
               console.error(e);
             } finally {

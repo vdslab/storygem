@@ -9,14 +9,7 @@ const App = () => {
     <div className="App">
       <Form setData={setData} />
       {data && (
-        <VoronoiTreeMap
-          data={data.data}
-          outsideRegion={data.outsideRegion}
-          fontFamily={data.fontFamily}
-          sizeOptimization={data.sizeOptimization}
-          colorPalette={data.colorPalette}
-          showTextPolygon={params.has("debug")}
-        />
+        <VoronoiTreeMap data={data} showTextPolygon={params.has("debug")} />
       )}
     </div>
   );
