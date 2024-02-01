@@ -17,15 +17,13 @@ link.href = `https://fonts.googleapis.com/css2?${params.join("&")}`;
 link.rel = "stylesheet";
 document.head.append(link);
 
-setTimeout(() => {
-  Promise.all(
-    fonts.map((font) => document.fonts.load(`${fontSize}px ${font.name}`)),
-  ).then(() => {
-    const root = ReactDOM.createRoot(document.getElementById("root"));
-    root.render(
-      <React.StrictMode>
-        <App />
-      </React.StrictMode>,
-    );
-  });
-}, 0);
+Promise.all(
+  fonts.map((font) => document.fonts.load(`${fontSize}px ${font.name}`)),
+).then(() => {
+  const root = ReactDOM.createRoot(document.getElementById("root"));
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>,
+  );
+});
