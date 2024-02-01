@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { fonts, defaultFont } from "../fonts";
+import { fonts, defaultFont, fontSize } from "../fonts";
 import { regions } from "../regions";
 import LayoutWorker from "../worker/worker?worker";
 import { hyphenatedLines } from "../hyphenation";
-import { fontSize } from "../fonts";
 
 const fetchLanguageLinks = async (url) => {
   const pageTitle = url.split("/").pop();
@@ -99,6 +98,28 @@ const layoutVoronoiTreeMap = async (args) => {
   });
 };
 
+const fetchFont = async (fontFamily) => {
+  const font = fonts.find((font) => font.name === fontFamily);
+  const cssUrl = `https://fonts.googleapis.com/css2?family=${font.query}&display=swap`;
+  const cssResponse = await fetch(cssUrl);
+  let css = await cssResponse.text();
+  const re = /url\((.+?)\)/g;
+  for (const item of css.matchAll(re)) {
+    const fontUrl = item[1];
+    const fontResponse = await fetch(fontUrl);
+    const blob = await fontResponse.blob();
+    const dataUrl = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.addEventListener("load", (event) => {
+        resolve(event.target.result);
+      });
+      reader.readAsDataURL(blob);
+    });
+    css = css.replace(fontUrl, dataUrl);
+  }
+  return css;
+};
+
 const Form = (props) => {
   const formRef = useRef();
   const [loading, setLoading] = useState(false);
@@ -174,7 +195,8 @@ const Form = (props) => {
                 sizeOptimization,
                 colorPalette: event.target.elements.colorPalette.value,
               });
-              props.setData({ cells, outsideRegion });
+              const styleContent = await fetchFont(fontFamily);
+              props.setData({ cells, outsideRegion, styleContent });
             } catch (e) {
               console.error(e);
             } finally {
@@ -319,8 +341,8 @@ const Form = (props) => {
                     <select name="fontFamily" defaultValue={defaultFont}>
                       {fonts.map((font) => {
                         return (
-                          <option key={font} value={font}>
-                            {font}
+                          <option key={font.name} value={font.name}>
+                            {font.name}
                           </option>
                         );
                       })}

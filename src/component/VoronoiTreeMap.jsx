@@ -38,7 +38,7 @@ const VoronoiTreeMap = ({ data, showTextPolygon }) => {
     return null;
   }
 
-  const { cells, outsideRegion } = data;
+  const { cells, outsideRegion, styleContent } = data;
   const maxHeight = Math.max(...cells.map((cell) => cell.height + 1));
   const fontColor = "#444";
   const margin = {
@@ -70,6 +70,9 @@ const VoronoiTreeMap = ({ data, showTextPolygon }) => {
             className="has-ratio"
             viewBox={`${outsideLeft - margin.left} ${outsideTop - margin.top} ${displayWidth} ${displayHeight}`}
           >
+            <defs>
+              <style>{styleContent}</style>
+            </defs>
             <g>
               {cells.map((node) => {
                 return (
