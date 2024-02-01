@@ -1,15 +1,4 @@
-function toDataURL(svgText) {
-  return (
-    "data:image/svg+xml;charset=utf-8;base64," +
-    btoa(
-      encodeURIComponent(svgText).replace(/%([0-9A-F]{2})/g, (match, p1) =>
-        String.fromCharCode("0x" + p1),
-      ),
-    )
-  );
-}
-
-function initCanvas(svgDataURL, width, height) {
+function initCanvas(svgURL, width, height) {
   return new Promise((resolve) => {
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d");
@@ -20,23 +9,23 @@ function initCanvas(svgDataURL, width, height) {
       context.drawImage(image, 0, 0);
       resolve(canvas);
     };
-    image.src = svgDataURL;
+    image.src = svgURL;
   });
 }
 
 export class SVGConverter {
-  #canvas;
-  #svgDataURL;
+  #svgText;
+  #width;
+  #height;
 
-  static load(svgText, width, height) {
-    const dataURL = toDataURL(svgText);
-    return initCanvas(dataURL, width, height).then((canvas) => {
-      return new SVGConverter(dataURL, canvas);
-    });
-  }
-
-  static loadFromElement(original) {
-    const { width, height } = original.getBoundingClientRect();
+  static loadFromElement(original, width = null, height = null) {
+    const bbox = original.getBoundingClientRect();
+    if (width == null) {
+      width = bbox.width;
+    }
+    if (height == null) {
+      height = bbox.height;
+    }
     const svg = original.cloneNode(true);
     svg.setAttributeNS(null, "version", "1.1");
     svg.setAttributeNS(null, "width", width);
@@ -51,33 +40,43 @@ export class SVGConverter {
       "xmlns:xlink",
       "http://www.w3.org/1999/xlink",
     );
-    return SVGConverter.load(svg.outerHTML, width, height);
+    return new SVGConverter(svg.outerHTML, width, height);
   }
 
-  constructor(svgDataURL, canvas) {
-    this.#canvas = canvas;
-    this.#svgDataURL = svgDataURL;
+  constructor(svgText, width, height) {
+    this.#svgText = svgText;
+    this.#width = width;
+    this.#height = height;
   }
 
   svgURL() {
-    return this.#svgDataURL;
+    const blob = new Blob([this.#svgText], {
+      type: "image/svg+xml",
+    });
+    return URL.createObjectURL(blob);
   }
 
   pngURL() {
     return new Promise((resolve) => {
-      this.#canvas.toBlob((blob) => {
-        const url = URL.createObjectURL(blob);
-        resolve(url);
-      }, "image/png");
+      const url = this.svgURL();
+      initCanvas(url, this.#width, this.#height).then((canvas) => {
+        canvas.toBlob((blob) => {
+          const url = URL.createObjectURL(blob);
+          resolve(url);
+        }, "image/png");
+      });
     });
   }
 
   jpegURL() {
     return new Promise((resolve) => {
-      this.#canvas.toBlob((blob) => {
-        const url = URL.createObjectURL(blob);
-        resolve(url);
-      }, "image/jpeg");
+      const url = this.svgURL();
+      initCanvas(url, this.#width, this.#height).then((canvas) => {
+        canvas.toBlob((blob) => {
+          const url = URL.createObjectURL(blob);
+          resolve(url);
+        }, "image/jpeg");
+      });
     });
   }
 }

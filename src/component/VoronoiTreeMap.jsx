@@ -400,6 +400,13 @@ const VoronoiTreeMap = ({
   const displayWidth = outsideRight - outsideLeft + margin.left + margin.right;
   const displayHeight = outsideBottom - outsideTop + margin.top + margin.bottom;
 
+  async function initConverter() {
+    return await SVGConverter.loadFromElement(
+      svgRef.current,
+      displayWidth,
+      displayHeight,
+    );
+  }
   return (
     <div className="container">
       <section className="section">
@@ -462,9 +469,7 @@ const VoronoiTreeMap = ({
             <button
               className="button is-light is-small"
               onClick={async () => {
-                const converter = await SVGConverter.loadFromElement(
-                  svgRef.current,
-                );
+                const converter = await initConverter();
                 download(await converter.svgURL(), "image.svg");
               }}
             >
@@ -475,9 +480,7 @@ const VoronoiTreeMap = ({
             <button
               className="button is-light is-small"
               onClick={async () => {
-                const converter = await SVGConverter.loadFromElement(
-                  svgRef.current,
-                );
+                const converter = await initConverter();
                 download(await converter.pngURL(), "image.png");
               }}
             >
@@ -488,9 +491,7 @@ const VoronoiTreeMap = ({
             <button
               className="button is-light is-small"
               onClick={async () => {
-                const converter = await SVGConverter.loadFromElement(
-                  svgRef.current,
-                );
+                const converter = await initConverter();
                 download(await converter.jpegURL(), "image.jpeg");
               }}
             >
