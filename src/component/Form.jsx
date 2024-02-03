@@ -4,30 +4,17 @@ import { regions } from "../regions";
 import LayoutWorker from "../worker/worker?worker";
 import { hyphenatedLines } from "../hyphenation";
 
-const fetchLanguageLinks = async (url) => {
-  const pageTitle = url.split("/").pop();
-  const lang = url.split("/")[2].split(".")[0];
-  const apiUrl = `https://${lang}.wikipedia.org/w/api.php?action=query&prop=langlinks&titles=${pageTitle}&lllang=en&format=json&origin=*`;
-  const response = await fetch(apiUrl);
-  const data = await response.json();
-  const pages = data.query.pages;
-  const pageId = Object.keys(pages)[0];
-  return pages[pageId].langlinks ? pages[pageId].langlinks[0]["*"] : null;
-};
-
 const fetchWikipediaData = async (url) => {
-  const lang = url.split("/")[2].split(".")[0];
-  let pageTitle;
-
-  if (lang === "en") {
-    pageTitle = url.split("/").pop();
-    pageTitle = decodeURIComponent(pageTitle).replace(/_/g, " ");
+  const langCode = url.split("/")[2].split(".")[0];
+  let apiUrl;
+  if (langCode === "ja") {
+    const pageTitle = decodeURIComponent(url.split("/").pop());
+    apiUrl = `https://ja.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext&format=json&origin=*&titles=${pageTitle}`;
   } else {
-    pageTitle = await fetchLanguageLinks(url);
-    if (!pageTitle) return null;
+    const pageTitle = decodeURIComponent(url.split("/").pop());
+    apiUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext&format=json&origin=*&titles=${pageTitle}`;
   }
 
-  const apiUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext&format=json&origin=*&titles=${pageTitle}`;
   const response = await fetch(apiUrl);
   const data = await response.json();
   const pageId = Object.keys(data.query.pages)[0];
