@@ -100,6 +100,9 @@ const layoutVoronoiTreeMap = async (args) => {
 
 const fetchFont = async (fontFamily) => {
   const font = fonts.find((font) => font.name === fontFamily);
+  if (!font.query) {
+    return "";
+  }
   const cssUrl = `https://fonts.googleapis.com/css2?family=${font.query}&display=swap`;
   const cssResponse = await fetch(cssUrl);
   let css = await cssResponse.text();
