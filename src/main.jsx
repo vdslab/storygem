@@ -15,15 +15,17 @@ for (const font of fonts) {
 params.push("display=swap");
 link.href = `https://fonts.googleapis.com/css2?${params.join("&")}`;
 link.rel = "stylesheet";
-document.head.append(link);
-
-Promise.all(
-  fonts.map((font) => document.fonts.load(`${fontSize}px ${font.name}`)),
-).then(() => {
-  const root = ReactDOM.createRoot(document.getElementById("root"));
-  root.render(
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>,
-  );
+link.addEventListener("load", () => {
+  Promise.all(
+    fonts.map((font) => document.fonts.load(`${fontSize}px ${font.name}`)),
+  ).then((result) => {
+    console.log(result);
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>,
+    );
+  });
 });
+document.head.append(link);
