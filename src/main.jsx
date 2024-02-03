@@ -18,8 +18,7 @@ link.rel = "stylesheet";
 link.addEventListener("load", () => {
   Promise.all(
     fonts.map((font) => document.fonts.load(`${fontSize}px ${font.name}`)),
-  ).then((result) => {
-    console.log(result);
+  ).then(() => {
     const root = ReactDOM.createRoot(document.getElementById("root"));
     root.render(
       <React.StrictMode>
