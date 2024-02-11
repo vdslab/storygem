@@ -26,11 +26,11 @@ def tokenize_en(text):
     for token, pos in nltk.pos_tag(nltk.word_tokenize(text)):
         word = None
         if pos.startswith('NN'):
-            word = lemmatizer.lemmatize(token, 'n')
+            word = lemmatizer.lemmatize(token.lower(), 'n')
         elif pos.startswith('JJ'):
-            word = lemmatizer.lemmatize(token, 'a')
+            word = lemmatizer.lemmatize(token.lower(), 'a')
         elif pos.startswith('VB'):
-            word = lemmatizer.lemmatize(token, 'v')
+            word = lemmatizer.lemmatize(token.lower(), 'v')
         if word and word not in stopwords:
             yield word.lower()
 
