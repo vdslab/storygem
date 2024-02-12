@@ -118,7 +118,7 @@ const Form = (props) => {
   useEffect(() => {
     (async () => {
       const text = await fetchWikipediaData(
-        "https://en.wikipedia.org/wiki/Cat",
+        "https://en.wikipedia.org/wiki/Dog"
       );
       formRef.current.elements.text.value = text;
     })();
