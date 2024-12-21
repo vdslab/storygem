@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useMemo, useEffect, useState } from "react";
 import { fontSize } from "../fonts";
 import { SVGConverter } from "../image";
 
@@ -33,6 +33,9 @@ const download = (url, filename) => {
 
 const VoronoiTreeMap = ({ data, showTextPolygon }) => {
   const svgRef = useRef();
+  const [openAIResponse, setOpenAIResponse] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   if (data == null) {
     return null;
@@ -61,6 +64,64 @@ const VoronoiTreeMap = ({ data, showTextPolygon }) => {
       displayHeight,
     );
   }
+
+  const groupedWords = useMemo(() => {
+    const groups = {};
+    const heightTwoNodes = cells.filter((node) => node.height === 2);
+    let count = 1;
+
+    heightTwoNodes.forEach((node) => {
+      if (Array.isArray(node.children)) {
+        node.children.forEach((item) => {
+          if (Array.isArray(item.children)) {
+            item.children.forEach((child) => {
+              const { word } = child.data;
+              if (word) {
+                if (!groups["cluster" + count]) {
+                  groups["cluster" + count] = [];
+                }
+                groups["cluster" + count].push(word);
+              }
+            });
+          }
+        });
+      }
+      count++;
+    });
+
+    return groups;
+  }, [cells]);
+
+  useEffect(() => {}, [groupedWords]);
+
+  const sendToOpenAI = async () => {
+    setIsLoading(true);
+    setError(null);
+    setOpenAIResponse(null);
+    try {
+      const response = await fetch("http://localhost:5000/api/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ groupedWords }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("OpenAI Response:", data.text);
+      setOpenAIResponse(data.text);
+    } catch (err) {
+      console.error(err);
+      setError("Error communicating with OpenAI API");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="container">
       <section className="section">
@@ -90,7 +151,12 @@ const VoronoiTreeMap = ({ data, showTextPolygon }) => {
             {showTextPolygon && (
               <g>
                 {cells
-                  .filter((node) => node.data.word)
+                  .filter(
+                    (node) =>
+                      node.data &&
+                      Array.isArray(node.data) &&
+                      node.data.length > 0,
+                  )
                   .map((node) => {
                     return (
                       <g key={node.id}>
@@ -155,7 +221,23 @@ const VoronoiTreeMap = ({ data, showTextPolygon }) => {
               Save as JPEG
             </button>
           </div>
+          <div className="control">
+            <button
+              className="button is-primary is-small"
+              onClick={sendToOpenAI}
+              disabled={isLoading}
+            >
+              {isLoading ? "Processing..." : "Send to OpenAI"}
+            </button>
+          </div>
         </div>
+        {error && <div className="notification is-danger">{error}</div>}
+        {openAIResponse && (
+          <div className="notification is-info">
+            <h2 className="title is-4">OpenAI Response</h2>
+            <p>{openAIResponse}</p>
+          </div>
+        )}
       </section>
     </div>
   );

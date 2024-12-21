@@ -153,10 +153,10 @@ const Form = (props) => {
               const sizeOptimization =
                 event.target.elements.sizeOptimization.value === "enabled"
                   ? {
-                      rotateStep: rotate === "none" ? null : +rotate,
-                      allowHyphenation:
+                    rotateStep: rotate === "none" ? null : +rotate,
+                    allowHyphenation:
                         event.target.elements.hyphenation.value === "enabled",
-                    }
+                  }
                   : null;
               for (const item of data) {
                 if (item.word) {
