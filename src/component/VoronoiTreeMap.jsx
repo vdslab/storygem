@@ -31,7 +31,7 @@ const download = (url, filename) => {
   link.click();
 };
 
-const VoronoiTreeMap = ({ data, showTextPolygon }) => {
+const VoronoiTreeMap = ({ data, language, showTextPolygon }) => {
   const svgRef = useRef();
   const [openAIResponse, setOpenAIResponse] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -104,7 +104,7 @@ const VoronoiTreeMap = ({ data, showTextPolygon }) => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ groupedWords }),
+        body: JSON.stringify({ groupedWords, lang: language }),
       });
 
       if (!response.ok) {
@@ -112,7 +112,6 @@ const VoronoiTreeMap = ({ data, showTextPolygon }) => {
       }
 
       const data = await response.json();
-      console.log("OpenAI Response:", data.text);
       setOpenAIResponse(data.text);
     } catch (err) {
       console.error(err);

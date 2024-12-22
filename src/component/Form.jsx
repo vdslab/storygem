@@ -110,7 +110,7 @@ const fetchFont = async (fontFamily) => {
   return css;
 };
 
-const Form = (props) => {
+const Form = ({ setData, setLanguage }) => {
   const formRef = useRef();
   const [loading, setLoading] = useState(false);
   const [sizeOptimization, setSizeOptimization] = useState(true);
@@ -134,9 +134,11 @@ const Form = (props) => {
             if (loading) {
               return;
             }
-            props.setData(null);
+            setData(null);
             setLoading(true);
             try {
+              const lang = event.target.elements.lang.value;
+              setLanguage(lang);
               const data = await fetchGraph({
                 text: event.target.elements.text.value,
                 words: event.target.elements.words.value,
@@ -186,7 +188,7 @@ const Form = (props) => {
                 colorPalette: event.target.elements.colorPalette.value,
               });
               const styleContent = await fetchFont(fontFamily);
-              props.setData({ cells, outsideRegion, styleContent });
+              setData({ cells, outsideRegion, styleContent });
             } catch (e) {
               console.error(e);
             } finally {
