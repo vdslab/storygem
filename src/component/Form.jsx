@@ -30,12 +30,24 @@ const fetchRandomWikipediaUrl = async () => {
   return `https://en.wikipedia.org/wiki/${encodeURIComponent(pageTitle)}`;
 };
 
-const fetchGraph = async ({ text, words, nNeighbors, lang, weight }) => {
+const fetchGraph = async ({
+  text,
+  words,
+  nNeighbors,
+  lang,
+  weight,
+  useContext,
+  clustering,
+  nClusters,
+}) => {
   const params = new URLSearchParams();
   params.append("words", words);
   params.append("n_neighbors", nNeighbors);
   params.append("lang", lang);
   params.append("weight", weight);
+  params.append("use_context", useContext || "false");
+  params.append("clustering", clustering || "louvain");
+  params.append("n_clusters", nClusters || "10");
   const url = `${import.meta.env.VITE_SERVER_URL}/knn_graph?${params}`;
   const response = await fetch(url, {
     method: "POST",
@@ -118,7 +130,7 @@ const Form = (props) => {
   useEffect(() => {
     (async () => {
       const text = await fetchWikipediaData(
-        "https://en.wikipedia.org/wiki/Dog"
+        "https://en.wikipedia.org/wiki/Dog",
       );
       formRef.current.elements.text.value = text;
     })();
@@ -143,6 +155,9 @@ const Form = (props) => {
                 nNeighbors: event.target.elements.nNeighbors.value,
                 lang: event.target.elements.lang.value,
                 weight: event.target.elements.weight.value,
+                useContext: event.target.elements.useContext.value,
+                clustering: event.target.elements.clustering.value,
+                nClusters: event.target.elements.nClusters.value,
               });
               const rotate = event.target.elements.rotate.value;
               const outsideRegion = regions.find(
@@ -153,10 +168,10 @@ const Form = (props) => {
               const sizeOptimization =
                 event.target.elements.sizeOptimization.value === "enabled"
                   ? {
-                      rotateStep: rotate === "none" ? null : +rotate,
-                      allowHyphenation:
+                    rotateStep: rotate === "none" ? null : +rotate,
+                    allowHyphenation:
                         event.target.elements.hyphenation.value === "enabled",
-                    }
+                  }
                   : null;
               for (const item of data) {
                 if (item.word) {
@@ -302,6 +317,47 @@ const Form = (props) => {
                       <option value="tf-idf">TF-IDF</option>
                     </select>
                   </div>
+                </div>
+              </div>
+            </div>
+            <div className="column is-4">
+              <div className="field">
+                <label className="label">Use Context Vectors</label>
+                <div className="control">
+                  <div className="select is-fullwidth">
+                    <select name="useContext" defaultValue="false">
+                      <option value="false">Disabled</option>
+                      <option value="true">Enabled</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="column is-4">
+              <div className="field">
+                <label className="label">Clustering Method</label>
+                <div className="control">
+                  <div className="select is-fullwidth">
+                    <select name="clustering" defaultValue="louvain">
+                      <option value="louvain">Louvain</option>
+                      <option value="hierarchical">Hierarchical</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="column is-4">
+              <div className="field">
+                <label className="label">Number of Clusters</label>
+                <div className="control">
+                  <input
+                    className="input"
+                    name="nClusters"
+                    type="number"
+                    min="2"
+                    step="1"
+                    defaultValue="10"
+                  />
                 </div>
               </div>
             </div>
