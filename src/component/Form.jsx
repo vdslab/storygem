@@ -36,7 +36,10 @@ const fetchGraph = async ({ text, words, nNeighbors, lang, weight }) => {
   params.append("n_neighbors", nNeighbors);
   params.append("lang", lang);
   params.append("weight", weight);
-  const url = `https://voronoi-treemap-word-cloud-3wi5srugvq-an.a.run.app/knn_graph?${params}`;
+  const baseUrl = import.meta.env.DEV
+    ? "/api"
+    : import.meta.env.VITE_SERVER_URL;
+  const url = `${baseUrl}/knn_graph?${params}`;
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -155,7 +158,7 @@ const Form = (props) => {
                   ? {
                     rotateStep: rotate === "none" ? null : +rotate,
                     allowHyphenation:
-                        event.target.elements.hyphenation.value === "enabled",
+                      event.target.elements.hyphenation.value === "enabled",
                   }
                   : null;
               for (const item of data) {

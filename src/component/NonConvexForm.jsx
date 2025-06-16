@@ -35,7 +35,10 @@ const fetchGraph = async ({ text, words, nNeighbors, lang, weight }) => {
   params.append("n_neighbors", nNeighbors);
   params.append("lang", lang);
   params.append("weight", weight);
-  const url = `https://voronoi-treemap-word-cloud-3wi5srugvq-an.a.run.app/knn_graph?${params}`;
+  const baseUrl = import.meta.env.DEV
+    ? "/api"
+    : import.meta.env.VITE_SERVER_URL;
+  const url = `${baseUrl}/knn_graph?${params}`;
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -102,7 +105,7 @@ const NonConvexForm = (props) => {
   useEffect(() => {
     (async () => {
       const text = await fetchWikipediaData(
-        "https://en.wikipedia.org/wiki/Dog"
+        "https://en.wikipedia.org/wiki/Dog",
       );
       formRef.current.elements.text.value = text;
     })();
@@ -112,8 +115,7 @@ const NonConvexForm = (props) => {
     <div className="container">
       <section className="section">
         <h1 className="title">非凸領域のVoronoi Treemap</h1>
-        <p className="subtitle">
-        </p>
+        <p className="subtitle"></p>
         <form
           ref={formRef}
           onSubmit={async (event) => {
@@ -131,48 +133,48 @@ const NonConvexForm = (props) => {
                 lang: event.target.elements.lang.value,
                 weight: event.target.elements.weight.value,
               });
-              
+
               console.log("NonConvexForm - fetched data:", {
                 dataLength: data.length,
-                firstItems: data.slice(0, 5)
+                firstItems: data.slice(0, 5),
               });
-              
+
               const outsideRegion = nonConvexRegions.find(
                 ({ label }) =>
                   label === event.target.elements.ousideRegion.value,
               ).points;
               const fontFamily = event.target.elements.fontFamily.value;
-              
+
               for (const item of data) {
                 if (item.word) {
                   item.textMeasure = textMeasure(item.word, fontFamily);
                 }
               }
-              
+
               console.log("NonConvexForm - sending to worker:", {
                 dataLength: data.length,
                 outsideRegionLength: outsideRegion.length,
                 fontFamily,
-                colorPalette: event.target.elements.colorPalette.value
+                colorPalette: event.target.elements.colorPalette.value,
               });
-              
+
               const result = await layoutNonConvexVoronoiTreeMap({
                 data,
                 outsideRegion,
                 fontFamily,
                 colorPalette: event.target.elements.colorPalette.value,
               });
-              
+
               console.log("NonConvexForm - received result:", {
                 cellsLength: result.cells?.length,
-                convexHullLength: result.convexHull?.length
+                convexHullLength: result.convexHull?.length,
               });
               const styleContent = await fetchFont(fontFamily);
-              props.setData({ 
-                cells: result.cells, 
-                outsideRegion, 
-                convexHull: result.convexHull, 
-                styleContent 
+              props.setData({
+                cells: result.cells,
+                outsideRegion,
+                convexHull: result.convexHull,
+                styleContent,
               });
             } catch (e) {
               console.error(e);
@@ -297,7 +299,10 @@ const NonConvexForm = (props) => {
                 <label className="label">Outside Region (非凸領域)</label>
                 <div className="control">
                   <div className="select is-fullwidth">
-                    <select name="ousideRegion" defaultValue={nonConvexRegions[0].label}>
+                    <select
+                      name="ousideRegion"
+                      defaultValue={nonConvexRegions[0].label}
+                    >
                       {nonConvexRegions.map((region) => {
                         return (
                           <option key={region.label} value={region.label}>
