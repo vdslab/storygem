@@ -2,7 +2,9 @@ import "bulma/css/bulma.css";
 import "./index.css";
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import App from "./App";
+import NonConvexVoronoiTreeMapPage from "./NonConvexVoronoiTreeMapPage";
 import { fonts, fontSize } from "./fonts";
 
 const link = document.createElement("link");
@@ -22,7 +24,12 @@ link.addEventListener("load", () => {
     const root = ReactDOM.createRoot(document.getElementById("root"));
     root.render(
       <React.StrictMode>
-        <App />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<App />} />
+            <Route path="/nonconvex-voronoi-treemap" element={<NonConvexVoronoiTreeMapPage />} />
+          </Routes>
+        </BrowserRouter>
       </React.StrictMode>,
     );
   });

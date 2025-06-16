@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { fonts, defaultFont, fontSize } from "../fonts";
 import { regions } from "../regions";
-import LayoutWorker from "../worker/worker?worker";
-import { hyphenatedLines } from "../hyphenation";
+import NonConvexWorker from "../worker/nonconvex-worker?worker";
 
 const fetchWikipediaData = async (url) => {
   const langCode = url.split("/")[2].split(".")[0];
@@ -47,22 +46,6 @@ const fetchGraph = async ({ text, words, nNeighbors, lang, weight }) => {
   return response.json();
 };
 
-const textImageData = (text, fontFamily) => {
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-  ctx.font = `${fontSize}px ${fontFamily}`;
-  // 単語を描画するのに十分なサイズを設定する
-  canvas.width = 200;
-  canvas.height = 200;
-  const dx = 10;
-  const dy = canvas.height / 2;
-  ctx.font = `${fontSize}px ${fontFamily}`;
-  text.forEach((line, i) => {
-    ctx.fillText(line, dx, dy + fontSize * i);
-  });
-  return ctx.getImageData(0, 0, canvas.width, canvas.height);
-};
-
 const textMeasure = (text, fontFamily) => {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
@@ -75,9 +58,9 @@ const textMeasure = (text, fontFamily) => {
   };
 };
 
-const layoutVoronoiTreeMap = async (args) => {
+const layoutNonConvexVoronoiTreeMap = async (args) => {
   return new Promise((resolve) => {
-    const worker = new LayoutWorker();
+    const worker = new NonConvexWorker();
     worker.onmessage = (event) => {
       resolve(event.data);
     };
@@ -110,15 +93,16 @@ const fetchFont = async (fontFamily) => {
   return css;
 };
 
-const Form = (props) => {
+const NonConvexForm = (props) => {
   const formRef = useRef();
   const [loading, setLoading] = useState(false);
-  const [sizeOptimization, setSizeOptimization] = useState(true);
+
+  const nonConvexRegions = regions.filter((region) => !region.isConvex);
 
   useEffect(() => {
     (async () => {
       const text = await fetchWikipediaData(
-        "https://en.wikipedia.org/wiki/Dog",
+        "https://en.wikipedia.org/wiki/Dog"
       );
       formRef.current.elements.text.value = text;
     })();
@@ -127,6 +111,9 @@ const Form = (props) => {
   return (
     <div className="container">
       <section className="section">
+        <h1 className="title">非凸領域のVoronoi Treemap</h1>
+        <p className="subtitle">
+        </p>
         <form
           ref={formRef}
           onSubmit={async (event) => {
@@ -144,49 +131,49 @@ const Form = (props) => {
                 lang: event.target.elements.lang.value,
                 weight: event.target.elements.weight.value,
               });
-              const rotate = event.target.elements.rotate.value;
-              const outsideRegion = regions.find(
+              
+              console.log("NonConvexForm - fetched data:", {
+                dataLength: data.length,
+                firstItems: data.slice(0, 5)
+              });
+              
+              const outsideRegion = nonConvexRegions.find(
                 ({ label }) =>
                   label === event.target.elements.ousideRegion.value,
               ).points;
               const fontFamily = event.target.elements.fontFamily.value;
-              const sizeOptimization =
-                event.target.elements.sizeOptimization.value === "enabled"
-                  ? {
-                    rotateStep: rotate === "none" ? null : +rotate,
-                    allowHyphenation:
-                        event.target.elements.hyphenation.value === "enabled",
-                  }
-                  : null;
+              
               for (const item of data) {
                 if (item.word) {
-                  if (sizeOptimization == null) {
-                    item.textMeasure = textMeasure(item.word, fontFamily);
-                  } else {
-                    const separatedTexts = [[item.word]];
-                    if (sizeOptimization.allowHyphenation) {
-                      for (const lines of hyphenatedLines(item.word)) {
-                        separatedTexts.push(lines);
-                      }
-                    }
-                    item.wordPixels = separatedTexts.map((lines) => {
-                      return {
-                        lines,
-                        imageData: textImageData(lines, fontFamily),
-                      };
-                    });
-                  }
+                  item.textMeasure = textMeasure(item.word, fontFamily);
                 }
               }
-              const cells = await layoutVoronoiTreeMap({
+              
+              console.log("NonConvexForm - sending to worker:", {
+                dataLength: data.length,
+                outsideRegionLength: outsideRegion.length,
+                fontFamily,
+                colorPalette: event.target.elements.colorPalette.value
+              });
+              
+              const result = await layoutNonConvexVoronoiTreeMap({
                 data,
                 outsideRegion,
                 fontFamily,
-                sizeOptimization,
                 colorPalette: event.target.elements.colorPalette.value,
               });
+              
+              console.log("NonConvexForm - received result:", {
+                cellsLength: result.cells?.length,
+                convexHullLength: result.convexHull?.length
+              });
               const styleContent = await fetchFont(fontFamily);
-              props.setData({ cells, outsideRegion, styleContent });
+              props.setData({ 
+                cells: result.cells, 
+                outsideRegion, 
+                convexHull: result.convexHull, 
+                styleContent 
+              });
             } catch (e) {
               console.error(e);
             } finally {
@@ -307,11 +294,11 @@ const Form = (props) => {
             </div>
             <div className="column is-4">
               <div className="field">
-                <label className="label">Outside Region</label>
+                <label className="label">Outside Region (非凸領域)</label>
                 <div className="control">
                   <div className="select is-fullwidth">
-                    <select name="ousideRegion" defaultValue={regions[0].label}>
-                      {regions.map((region) => {
+                    <select name="ousideRegion" defaultValue={nonConvexRegions[0].label}>
+                      {nonConvexRegions.map((region) => {
                         return (
                           <option key={region.label} value={region.label}>
                             {region.label}
@@ -362,64 +349,6 @@ const Form = (props) => {
                 </div>
               </div>
             </div>
-            <div className="column is-4">
-              <div className="field">
-                <label className="label">Font Size Optimization</label>
-                <div className="control">
-                  <div className="select is-fullwidth">
-                    <select
-                      name="sizeOptimization"
-                      defaultValue="enabled"
-                      onChange={(event) => {
-                        setSizeOptimization(event.target.value === "enabled");
-                      }}
-                    >
-                      <option value="enabled">Enabled</option>
-                      <option value="disabled">Disabled</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="column is-4">
-              <div className="field">
-                <label className="label">Rotate</label>
-                <div className="control">
-                  <div className="select is-fullwidth">
-                    <select
-                      name="rotate"
-                      defaultValue="30"
-                      disabled={!sizeOptimization}
-                    >
-                      <option value="none">None</option>
-                      <option value="3">Steps every 3°</option>
-                      <option value="5">Steps every 5°</option>
-                      <option value="10">Steps every 10°</option>
-                      <option value="15">Steps every 15°</option>
-                      <option value="30">Steps every 30°</option>
-                      <option value="45">Steps every 45°</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="column is-4">
-              <div className="field">
-                <label className="label">Hyphenation</label>
-                <div className="control">
-                  <div className="select is-fullwidth">
-                    <select
-                      name="hyphenation"
-                      defaultValue="disabled"
-                      disabled={!sizeOptimization}
-                    >
-                      <option value="enabled">Enabled</option>
-                      <option value="disabled">Disabled</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
           <div className="field">
             <div className="control">
@@ -437,4 +366,4 @@ const Form = (props) => {
   );
 };
 
-export default Form;
+export default NonConvexForm;

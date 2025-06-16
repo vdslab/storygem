@@ -8,8 +8,10 @@
     "d3-voronoi-treemap": "^1.1.2",
     "glpk.js": "^4.0.1",
     "hyphen": "^1.10.4",
+    "polygon-clipping": "^0.15.7",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^7.6.0"
   },
   "scripts": {
     "start": "vite",
