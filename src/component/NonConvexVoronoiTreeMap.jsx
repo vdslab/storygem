@@ -39,6 +39,17 @@ const NonConvexVoronoiTreeMap = ({ data, showTextPolygon, showConvexHull }) => {
   }
 
   const { cells, outsideRegion, convexHull, styleContent } = data;
+  
+  // 総面積と各セルの統計情報を計算
+  const totalArea = cells.reduce((sum, cell) => sum + (cell.actualArea || 0), 0);
+  const cellStats = cells.map(cell => ({
+    id: cell.id,
+    word: cell.data?.word || "",
+    originalWeight: cell.originalWeight || cell.value || 0,
+    actualArea: cell.actualArea || 0,
+    areaRatio: cell.areaRatio || 0,
+    targetRatio: cell.value / cells.reduce((sum, c) => sum + c.value, 0)
+  }));
   const maxHeight = Math.max(...cells.map((cell) => cell.height + 1));
   const fontColor = "#444";
   const margin = {
@@ -174,6 +185,61 @@ const NonConvexVoronoiTreeMap = ({ data, showTextPolygon, showConvexHull }) => {
               Save as JPEG
             </button>
           </div>
+        </div>
+        
+        {/* 重みと面積の統計情報テーブル */}
+        <div className="box mt-4">
+          <h3 className="title is-5">領域の重みと面積情報</h3>
+          <div className="table-container">
+            <table className="table is-striped is-hoverable is-fullwidth">
+              <thead>
+                <tr>
+                  <th>単語</th>
+                  <th>設定重み</th>
+                  <th>実際の面積</th>
+                  <th>面積比率</th>
+                  <th>目標比率</th>
+                  <th>誤差</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cellStats
+                  .filter(stat => stat.word) // 単語がある領域のみ表示
+                  .sort((a, b) => b.actualArea - a.actualArea) // 面積の大きい順にソート
+                  .map((stat) => {
+                    const error = Math.abs(stat.areaRatio - stat.targetRatio);
+                    const errorPercent = stat.targetRatio > 0 ? (error / stat.targetRatio * 100) : 0;
+                    return (
+                      <tr key={stat.id}>
+                        <td>{stat.word}</td>
+                        <td>{stat.originalWeight.toFixed(2)}</td>
+                        <td>{stat.actualArea.toFixed(2)}</td>
+                        <td>{(stat.areaRatio * 100).toFixed(2)}%</td>
+                        <td>{(stat.targetRatio * 100).toFixed(2)}%</td>
+                        <td className={errorPercent > 10 ? "has-text-danger" : errorPercent > 5 ? "has-text-warning" : "has-text-success"}>
+                          {errorPercent.toFixed(1)}%
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th>合計</th>
+                  <th>-</th>
+                  <th>{totalArea.toFixed(2)}</th>
+                  <th>100.00%</th>
+                  <th>100.00%</th>
+                  <th>-</th>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <p className="help">
+            <span className="has-text-success">● 誤差5%未満</span>
+            <span className="has-text-warning ml-3">● 誤差5-10%</span>
+            <span className="has-text-danger ml-3">● 誤差10%以上</span>
+          </p>
         </div>
       </section>
     </div>

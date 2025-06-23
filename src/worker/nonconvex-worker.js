@@ -452,8 +452,23 @@ async function layoutNonConvexVoronoiTreemap({
     colorScale,
   );
 
+  // 総面積を計算
+  const totalArea = polygonArea(outsideRegion);
+  
   for (const node of allNodes) {
     node.fontFamily = fontFamily;
+    
+    // 各ノードの実際の面積を計算
+    if (node.polygon && node.polygon.length > 0) {
+      node.actualArea = polygonArea(node.polygon);
+      node.areaRatio = node.actualArea / totalArea;
+    }
+    
+    // 元の重み情報も保持
+    if (node.data && node.data.data) {
+      node.originalWeight = node.data.data.weight;
+    }
+    
     if (
       node.height === 0 &&
       node.data &&
