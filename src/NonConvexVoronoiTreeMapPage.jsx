@@ -6,6 +6,7 @@ const NonConvexVoronoiTreeMapPage = () => {
   const [data, setData] = useState(null);
   const [showTextPolygon, setShowTextPolygon] = useState(false);
   const [showConvexHull, setShowConvexHull] = useState(false);
+  const [adjustColorByWeight, setAdjustColorByWeight] = useState(true);
 
   return (
     <div>
@@ -53,12 +54,25 @@ const NonConvexVoronoiTreeMapPage = () => {
               </label>
             </div>
           </div>
+          <div className="field">
+            <div className="control">
+              <label className="checkbox">
+                <input
+                  type="checkbox"
+                  checked={adjustColorByWeight}
+                  onChange={(e) => setAdjustColorByWeight(e.target.checked)}
+                />
+                重みに応じて色の明度を調整
+              </label>
+            </div>
+          </div>
         </section>
       </div>
       <NonConvexVoronoiTreeMap 
         data={data} 
         showTextPolygon={showTextPolygon} 
         showConvexHull={showConvexHull}
+        adjustColorByWeight={adjustColorByWeight}
       />
     </div>
   );

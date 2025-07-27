@@ -1,4 +1,5 @@
 import * as d3 from "d3";
+import { parseSVGPath, loadSVGPath, simplifyPoints } from "./utils/svgPathParser";
 
 function regularPolygon(numberOfSides) {
   const chartSize = 1000;
@@ -77,6 +78,39 @@ function createHeartShape() {
   return result;
 }
 
+// SVGファイルから動的に犬の形状を作成
+async function createDogShapeFromSVG(svgPath = "/dog-simple.svg") {
+  try {
+    const { pathData, translateX, translateY } = await loadSVGPath(svgPath);
+    
+    // SVGパスを座標配列に変換
+    const scale = 1.5;
+    const offsetX = 500;
+    const offsetY = 500;
+    
+    // パスデータを解析して座標配列に変換
+    const points = parseSVGPath(pathData, scale, offsetX - translateX * scale, offsetY - translateY * scale);
+    
+    // 座標を簡略化
+    return simplifyPoints(points, 5);
+  } catch (error) {
+    console.error("Error loading SVG:", error);
+    // エラー時はデフォルトの犬の形状を返す
+    return createDefaultDogShape();
+  }
+}
+
+// デフォルトの犬の形状（SVG読み込みエラー時のフォールバック）
+function createDefaultDogShape() {
+  // エラー時は正方形を返す
+  return [
+    [0, 0],
+    [0, 1000],
+    [1000, 1000],
+    [1000, 0],
+  ];
+}
+
 export const regions = [
   {
     label: "Rectangle (Horizontal)",
@@ -115,4 +149,8 @@ export const regions = [
   { label: "Star Shape", points: createStarShape(), isConvex: false },
   { label: "Cross Shape", points: createCrossShape(), isConvex: false },
   { label: "Heart Shape", points: createHeartShape(), isConvex: false },
+  { label: "Dog Shape (from SVG)", points: [], isConvex: false, isDynamic: true, svgPath: "/dog.svg" },
 ];
+
+// SVGファイルから動的に形状を読み込む関数をエクスポート
+export { createDogShapeFromSVG };

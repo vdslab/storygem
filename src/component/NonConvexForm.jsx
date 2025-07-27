@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { fonts, defaultFont, fontSize } from "../fonts";
-import { regions } from "../regions";
+import { regions, createDogShapeFromSVG } from "../regions";
 import NonConvexWorker from "../worker/nonconvex-worker?worker";
+import { hyphenatedLines } from "../hyphenation";
 
 const fetchWikipediaData = async (url) => {
   const langCode = url.split("/")[2].split(".")[0];
@@ -47,6 +48,22 @@ const fetchGraph = async ({ text, words, nNeighbors, lang, weight }) => {
     body: text,
   });
   return response.json();
+};
+
+const textImageData = (text, fontFamily) => {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  ctx.font = `${fontSize}px ${fontFamily}`;
+  // 単語を描画するのに十分なサイズを設定する
+  canvas.width = 200;
+  canvas.height = 200;
+  const dx = 10;
+  const dy = canvas.height / 2;
+  ctx.font = `${fontSize}px ${fontFamily}`;
+  text.forEach((line, i) => {
+    ctx.fillText(line, dx, dy + fontSize * i);
+  });
+  return ctx.getImageData(0, 0, canvas.width, canvas.height);
 };
 
 const textMeasure = (text, fontFamily) => {
@@ -99,6 +116,7 @@ const fetchFont = async (fontFamily) => {
 const NonConvexForm = (props) => {
   const formRef = useRef();
   const [loading, setLoading] = useState(false);
+  const [sizeOptimization, setSizeOptimization] = useState(true);
 
   const nonConvexRegions = regions.filter((region) => !region.isConvex);
 
@@ -139,15 +157,56 @@ const NonConvexForm = (props) => {
                 firstItems: data.slice(0, 5),
               });
 
-              const outsideRegion = nonConvexRegions.find(
+              const rotate = event.target.elements.rotate.value;
+              const selectedRegion = nonConvexRegions.find(
                 ({ label }) =>
                   label === event.target.elements.ousideRegion.value,
-              ).points;
+              );
+
+              // SVGファイルから動的に形状を読み込む場合
+              let outsideRegion;
+              if (selectedRegion.isDynamic && selectedRegion.svgPath) {
+                try {
+                  outsideRegion = await createDogShapeFromSVG(
+                    selectedRegion.svgPath,
+                  );
+                } catch (error) {
+                  console.error("Failed to load SVG shape:", error);
+                  // フォールバックとして空の配列を使用
+                  outsideRegion = selectedRegion.points;
+                }
+              } else {
+                outsideRegion = selectedRegion.points;
+              }
+
               const fontFamily = event.target.elements.fontFamily.value;
+              const sizeOptimization =
+                event.target.elements.sizeOptimization.value === "enabled"
+                  ? {
+                    rotateStep: rotate === "none" ? null : +rotate,
+                    allowHyphenation:
+                        event.target.elements.hyphenation.value === "enabled",
+                  }
+                  : null;
 
               for (const item of data) {
                 if (item.word) {
-                  item.textMeasure = textMeasure(item.word, fontFamily);
+                  if (sizeOptimization == null) {
+                    item.textMeasure = textMeasure(item.word, fontFamily);
+                  } else {
+                    const separatedTexts = [[item.word]];
+                    if (sizeOptimization.allowHyphenation) {
+                      for (const lines of hyphenatedLines(item.word)) {
+                        separatedTexts.push(lines);
+                      }
+                    }
+                    item.wordPixels = separatedTexts.map((lines) => {
+                      return {
+                        lines,
+                        imageData: textImageData(lines, fontFamily),
+                      };
+                    });
+                  }
                 }
               }
 
@@ -155,6 +214,7 @@ const NonConvexForm = (props) => {
                 dataLength: data.length,
                 outsideRegionLength: outsideRegion.length,
                 fontFamily,
+                sizeOptimization,
                 colorPalette: event.target.elements.colorPalette.value,
               });
 
@@ -162,6 +222,7 @@ const NonConvexForm = (props) => {
                 data,
                 outsideRegion,
                 fontFamily,
+                sizeOptimization,
                 colorPalette: event.target.elements.colorPalette.value,
               });
 
@@ -349,6 +410,64 @@ const NonConvexForm = (props) => {
                       <option value="schemeSet2">Set2</option>
                       <option value="schemeSet3">Set3</option>
                       <option value="schemeTableau10">Tableau10</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="column is-4">
+              <div className="field">
+                <label className="label">Font Size Optimization</label>
+                <div className="control">
+                  <div className="select is-fullwidth">
+                    <select
+                      name="sizeOptimization"
+                      defaultValue="enabled"
+                      onChange={(event) => {
+                        setSizeOptimization(event.target.value === "enabled");
+                      }}
+                    >
+                      <option value="enabled">Enabled</option>
+                      <option value="disabled">Disabled</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="column is-4">
+              <div className="field">
+                <label className="label">Rotate</label>
+                <div className="control">
+                  <div className="select is-fullwidth">
+                    <select
+                      name="rotate"
+                      defaultValue="30"
+                      disabled={!sizeOptimization}
+                    >
+                      <option value="none">None</option>
+                      <option value="3">Steps every 3°</option>
+                      <option value="5">Steps every 5°</option>
+                      <option value="10">Steps every 10°</option>
+                      <option value="15">Steps every 15°</option>
+                      <option value="30">Steps every 30°</option>
+                      <option value="45">Steps every 45°</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="column is-4">
+              <div className="field">
+                <label className="label">Hyphenation</label>
+                <div className="control">
+                  <div className="select is-fullwidth">
+                    <select
+                      name="hyphenation"
+                      defaultValue="disabled"
+                      disabled={!sizeOptimization}
+                    >
+                      <option value="enabled">Enabled</option>
+                      <option value="disabled">Disabled</option>
                     </select>
                   </div>
                 </div>

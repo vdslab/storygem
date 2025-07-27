@@ -2,6 +2,8 @@ console.log("nonconvex-worker.js loaded");
 
 import * as d3 from "d3";
 import polygonClipping from "polygon-clipping";
+import GLPK from "glpk.js";
+import { makeLpObject } from "./lp";
 import { fontSize } from "../fonts";
 
 function pointInPolygon(point, polygon) {
@@ -309,53 +311,311 @@ function computeVoronoiTreemap(
 }
 
 
-function textTransform(node) {
+function getConvexHull(image) {
+  const dx = 10;
+  const dy = image.height / 2;
+  const points = [];
+  for (let i = 0; i < image.height; ++i) {
+    for (let j = 0; j < image.width; ++j) {
+      if (image.data[4 * (image.width * i + j) + 3] > 0) {
+        const x = j - dx;
+        const y = i - dy;
+        const margin = 1.5;
+        points.push([x + 0.5 - margin, y + 0.5 - margin]);
+        points.push([x + 0.5 + margin, y + 0.5 - margin]);
+        points.push([x + 0.5 - margin, y + 0.5 + margin]);
+        points.push([x + 0.5 + margin, y + 0.5 + margin]);
+      }
+    }
+  }
+
+  const q = [];
+  let p0 = points[0];
+  do {
+    q.push(p0);
+    let p1 = points[0];
+    for (let i = 1; i < points.length; ++i) {
+      const p2 = points[i];
+      if (p0 === p1) {
+        p1 = p2;
+      } else {
+        const x10 = p1[0] - p0[0];
+        const x20 = p2[0] - p0[0];
+        const y10 = p1[1] - p0[1];
+        const y20 = p2[1] - p0[1];
+        const v = x10 * y20 - x20 * y10;
+        if (
+          v > 0 ||
+          (v === 0 && x20 * x20 + y20 * y20 > x10 * x10 + y10 * y10)
+        ) {
+          p1 = p2;
+        }
+      }
+    }
+    p0 = p1;
+  } while (p0 !== q[0]);
+  return q;
+}
+
+function convert2DArrayTo1DArray(array2D) {
+  const arrayX = [];
+  const arrayY = [];
+  for (let i = 0; i < array2D.length; i++) {
+    arrayX.push(array2D[i][0]);
+    arrayY.push(array2D[i][1]);
+  }
+  return [arrayX, arrayY];
+}
+
+function sortVerticesClockwise(vertice) {
+  const vertices = vertice.concat();
+  let leftMost = vertices[0];
+  let leftMostIndex = 0;
+  for (let i = 1; i < vertices.length; i++) {
+    if (vertices[i][0] < leftMost[0]) {
+      leftMost = vertices[i];
+      leftMostIndex = i;
+    } else if (vertices[i][0] === leftMost[0] && vertices[i][1] < leftMost[1]) {
+      leftMost = vertices[i];
+      leftMostIndex = i;
+    }
+  }
+
+  const sortedVertices = [];
+  sortedVertices.push(vertices[leftMostIndex]);
+  vertices.splice(leftMostIndex, 1);
+  vertices.sort(
+    (a, b) => getAngle(sortedVertices[0], a) - getAngle(sortedVertices[0], b),
+  );
+
+  return sortedVertices.concat(vertices);
+}
+
+function getAngle(p1, p2) {
+  const deltaX = p2[0] - p1[0];
+  const deltaY = p2[1] - p1[1];
+  return Math.atan2(deltaY, deltaX);
+}
+
+function calcResizeValue(data, px, py, qx, qy) {
+  const vars = data.vars;
+  let resizeX = [0, 0],
+    resizeY = [0, 0];
+  for (let i = 0; i < px.length; i++) {
+    const lambdaName1 = `lambda1_${i + 1}`;
+    const lambdaName2 = `lambda2_${i + 1}`;
+    resizeX[0] += vars[lambdaName1] * px[i];
+    resizeX[1] += vars[lambdaName2] * px[i];
+    resizeY[0] += vars[lambdaName1] * py[i];
+    resizeY[1] += vars[lambdaName2] * py[i];
+  }
+  const S =
+    Math.hypot(qx[1] - qx[0], qy[1] - qy[0]) /
+    Math.hypot(resizeX[1] - resizeX[0], resizeY[1] - resizeY[0]);
+  const dx = qx[0] / S - resizeX[0];
+  const dy = qy[0] / S - resizeY[0];
+  return [1 / S, -dx, -dy];
+}
+
+function rotate(q, theta) {
+  const cos = Math.cos(theta);
+  const sin = Math.sin(theta);
+  return q.map(([x, y]) => [x * cos - y * sin, x * sin + y * cos]);
+}
+
+function isConvex(polygon) {
+  const n = polygon.length;
+  if (n < 3) return false;
+  
+  let sign = null;
+  for (let i = 0; i < n; i++) {
+    const p1 = polygon[i];
+    const p2 = polygon[(i + 1) % n];
+    const p3 = polygon[(i + 2) % n];
+    
+    const crossProduct = (p2[0] - p1[0]) * (p3[1] - p2[1]) - (p2[1] - p1[1]) * (p3[0] - p2[0]);
+    
+    if (Math.abs(crossProduct) > 1e-10) {
+      const currentSign = crossProduct > 0;
+      if (sign === null) {
+        sign = currentSign;
+      } else if (sign !== currentSign) {
+        return false;
+      }
+    }
+  }
+  
+  return true;
+}
+
+async function textTransform(node, sizeOptimization, glpk) {
   const { polygon } = node;
   if (!polygon || polygon.length < 3) {
     return null;
   }
   
-  const [cx, cy] = polygonCentroid(polygon);
-  const measure = node.data.textMeasure;
+  const convexHullPolygon = d3.polygonHull(polygon);
   
-  if (!measure || !measure.width || !measure.actualBoundingBoxAscent) {
-    return null;
-  }
-  
-  const r0 = Math.hypot(measure.width / 2, fontSize / 2);
-  let r = Infinity;
+  if (sizeOptimization && convexHullPolygon && isConvex(convexHullPolygon)) {
+    const { rotateStep } = sizeOptimization;
+    let s = 0;
+    let dx = 0;
+    let dy = 0;
+    let a = 0;
+    let resultText = null;
+    let textPolygon = null;
 
-  for (let i = 0; i < polygon.length; ++i) {
-    const [x1, y1] = polygon[i];
-    const [x2, y2] = polygon[(i + 1) % polygon.length];
-    const a = y2 - y1;
-    const b = x1 - x2;
-    const c = -(a * x1 + b * y1);
-    const denominator = Math.hypot(a, b);
-    if (denominator > 0) {
-      r = Math.min(r, Math.abs(a * cx + b * cy + c) / denominator - 2);
+    const [px, py] = convert2DArrayTo1DArray(sortVerticesClockwise(convexHullPolygon));
+    const radianList = [0];
+    if (rotateStep) {
+      for (let t = rotateStep; t <= 90; t += rotateStep) {
+        radianList.push((Math.PI * t) / 180);
+        radianList.push((-Math.PI * t) / 180);
+      }
     }
-  }
+    
+    for (let radian of radianList) {
+      for (const { lines, imageData } of node.data.wordPixels) {
+        const [qx, qy] = convert2DArrayTo1DArray(
+          sortVerticesClockwise(rotate(getConvexHull(imageData), radian)),
+        );
+        const [objective, subjectTo] = makeLpObject(px, py, qx, qy);
+        const options = {
+          msglev: glpk.GLP_MSG_ERR,
+          presol: false,
+        };
+        const { result } = await glpk.solve(
+          {
+            name: "LP",
+            objective: objective,
+            subjectTo: subjectTo,
+          },
+          options,
+        );
+        const [stateS, statedx, statedy] = calcResizeValue(
+          result,
+          px,
+          py,
+          qx,
+          qy,
+        );
+        
+        const testScale = stateS * 0.95;
+        const testDx = statedx;
+        const testDy = statedy;
+        
+        const textCorners = [];
+        for (let j = 0; j < qx.length; j++) {
+          let x = 0;
+          let y = 0;
+          for (let i = 0; i < px.length; i++) {
+            const lambdaName1 = `lambda${j + 1}_${i + 1}`;
+            x += result.vars[lambdaName1] * px[i];
+            y += result.vars[lambdaName1] * py[i];
+          }
+          textCorners.push([x, y]);
+        }
+        
+        let allInside = true;
+        for (const corner of textCorners) {
+          if (!pointInPolygon(corner, polygon)) {
+            allInside = false;
+            break;
+          }
+        }
+        
+        let finalScale = testScale;
+        if (!allInside) {
+          let low = 0;
+          let high = testScale;
+          const iterations = 10;
+          
+          for (let iter = 0; iter < iterations; iter++) {
+            const mid = (low + high) / 2;
+            const midCorners = textCorners.map(([x, y]) => {
+              const scaledX = testDx + (x - testDx) * (mid / testScale);
+              const scaledY = testDy + (y - testDy) * (mid / testScale);
+              return [scaledX, scaledY];
+            });
+            
+            let midAllInside = true;
+            for (const corner of midCorners) {
+              if (!pointInPolygon(corner, polygon)) {
+                midAllInside = false;
+                break;
+              }
+            }
+            
+            if (midAllInside) {
+              low = mid;
+            } else {
+              high = mid;
+            }
+          }
+          
+          finalScale = low;
+        }
+        
+        if (finalScale > s) {
+          s = finalScale;
+          dx = testDx;
+          dy = testDy;
+          a = radian * (180 / Math.PI);
+          resultText = lines;
+          textPolygon = textCorners.map(([x, y]) => {
+            const scaledX = dx + (x - dx) * (s / testScale);
+            const scaledY = dy + (y - dy) * (s / testScale);
+            return [scaledX, scaledY];
+          });
+        }
+      }
+    }
 
-  if (!isFinite(r) || r <= 0) {
-    r = 10;
+    return { s, dx, dy, a, polygon: textPolygon, lines: resultText };
+  } else {
+    // 凸包が凸多角形でない場合、または最適化が無効な場合は従来の方法を使用
+    const [cx, cy] = polygonCentroid(polygon);
+    const measure = node.data.textMeasure;
+    
+    if (!measure || !measure.width || !measure.actualBoundingBoxAscent) {
+      return null;
+    }
+    
+    const r0 = Math.hypot(measure.width / 2, fontSize / 2);
+    let r = Infinity;
+
+    for (let i = 0; i < polygon.length; ++i) {
+      const [x1, y1] = polygon[i];
+      const [x2, y2] = polygon[(i + 1) % polygon.length];
+      const a = y2 - y1;
+      const b = x1 - x2;
+      const c = -(a * x1 + b * y1);
+      const denominator = Math.hypot(a, b);
+      if (denominator > 0) {
+        r = Math.min(r, Math.abs(a * cx + b * cy + c) / denominator - 2);
+      }
+    }
+
+    if (!isFinite(r) || r <= 0) {
+      r = 10;
+    }
+    
+    const s = Math.min(r / r0, 1);
+    
+    return {
+      s: isFinite(s) ? s : 0.1,
+      dx: isFinite(cx) ? cx - s * (measure.width / 2) : 0,
+      dy: isFinite(cy) ? cy - s * (fontSize / 2 - measure.actualBoundingBoxAscent) : 0,
+      a: 0,
+      polygon: [
+        [cx - s * (measure.width / 2), cy - s * (fontSize / 2)],
+        [cx - s * (measure.width / 2), cy + s * (fontSize / 2)],
+        [cx + s * (measure.width / 2), cy + s * (fontSize / 2)],
+        [cx + s * (measure.width / 2), cy - s * (fontSize / 2)],
+      ],
+      lines: [node.data.word],
+    };
   }
-  
-  const s = Math.min(r / r0, 1);
-  
-  return {
-    s: isFinite(s) ? s : 0.1,
-    dx: isFinite(cx) ? cx - s * (measure.width / 2) : 0,
-    dy: isFinite(cy) ? cy - s * (fontSize / 2 - measure.actualBoundingBoxAscent) : 0,
-    a: 0,
-    polygon: [
-      [cx - s * (measure.width / 2), cy - s * (fontSize / 2)],
-      [cx - s * (measure.width / 2), cy + s * (fontSize / 2)],
-      [cx + s * (measure.width / 2), cy + s * (fontSize / 2)],
-      [cx + s * (measure.width / 2), cy - s * (fontSize / 2)],
-    ],
-    lines: [node.data.word],
-  };
 }
 
 function buildHierarchicalVoronoiTreemap(root, boundary, colorScale) {
@@ -425,7 +685,9 @@ async function layoutNonConvexVoronoiTreemap({
   data,
   outsideRegion,
   fontFamily,
+  sizeOptimization,
   colorPalette,
+  glpk,
 }) {
   const weightScale = d3
     .scaleLinear()
@@ -476,7 +738,7 @@ async function layoutNonConvexVoronoiTreemap({
       node.polygon &&
       node.polygon.length > 0
     ) {
-      const transform = textTransform(node);
+      const transform = await textTransform(node, sizeOptimization, glpk);
       if (transform) {
         node.textTransform = transform;
       }
@@ -492,21 +754,25 @@ async function layoutNonConvexVoronoiTreemap({
 }
 
 onmessage = async (event) => {
-  const { data, outsideRegion, fontFamily, colorPalette } = event.data;
+  const { data, outsideRegion, fontFamily, sizeOptimization, colorPalette } = event.data;
 
   console.log("Worker received data:", {
     dataLength: data?.length,
     outsideRegionLength: outsideRegion?.length,
     fontFamily,
+    sizeOptimization,
     colorPalette,
   });
 
   try {
+    const glpk = await GLPK();
     const result = await layoutNonConvexVoronoiTreemap({
       data,
       outsideRegion,
       fontFamily,
+      sizeOptimization,
       colorPalette,
+      glpk,
     });
     console.log("Worker result:", {
       cellsLength: result.cells?.length,
