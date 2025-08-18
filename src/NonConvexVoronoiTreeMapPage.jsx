@@ -4,9 +4,6 @@ import NonConvexVoronoiTreeMap from "./component/NonConvexVoronoiTreeMap";
 
 const NonConvexVoronoiTreeMapPage = () => {
   const [data, setData] = useState(null);
-  const [showTextPolygon, setShowTextPolygon] = useState(false);
-  const [showConvexHull, setShowConvexHull] = useState(false);
-  const [adjustColorByWeight, setAdjustColorByWeight] = useState(true);
 
   return (
     <div>
@@ -28,52 +25,7 @@ const NonConvexVoronoiTreeMapPage = () => {
         </div>
       </div>
       <NonConvexForm setData={setData} />
-      <div className="container">
-        <section className="section">
-          <div className="field">
-            <div className="control">
-              <label className="checkbox">
-                <input
-                  type="checkbox"
-                  checked={showTextPolygon}
-                  onChange={(e) => setShowTextPolygon(e.target.checked)}
-                />
-                テキスト領域を表示
-              </label>
-            </div>
-          </div>
-          <div className="field">
-            <div className="control">
-              <label className="checkbox">
-                <input
-                  type="checkbox"
-                  checked={showConvexHull}
-                  onChange={(e) => setShowConvexHull(e.target.checked)}
-                />
-                凸包を表示
-              </label>
-            </div>
-          </div>
-          <div className="field">
-            <div className="control">
-              <label className="checkbox">
-                <input
-                  type="checkbox"
-                  checked={adjustColorByWeight}
-                  onChange={(e) => setAdjustColorByWeight(e.target.checked)}
-                />
-                重みに応じて色の明度を調整
-              </label>
-            </div>
-          </div>
-        </section>
-      </div>
-      <NonConvexVoronoiTreeMap 
-        data={data} 
-        showTextPolygon={showTextPolygon} 
-        showConvexHull={showConvexHull}
-        adjustColorByWeight={adjustColorByWeight}
-      />
+      <NonConvexVoronoiTreeMap data={data} />
     </div>
   );
 };
