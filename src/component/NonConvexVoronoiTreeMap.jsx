@@ -42,6 +42,7 @@ const NonConvexVoronoiTreeMap = ({ data }) => {
 
   const maxHeight = Math.max(...cells.map((cell) => cell.height + 1));
   const fontColor = "#444";
+  const defaultStrokeWidth = 2; // デフォルトの境界線の太さ
   const margin = {
     top: maxHeight / 2,
     right: maxHeight / 2,
@@ -90,7 +91,7 @@ const NonConvexVoronoiTreeMap = ({ data }) => {
                       d={"M" + node.polygon.join("L") + "Z"}
                       fill={node.color}
                       stroke={fontColor}
-                      strokeWidth={node.height + 1}
+                      strokeWidth={defaultStrokeWidth}
                     />
                   </g>
                 );
