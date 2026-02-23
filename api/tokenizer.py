@@ -31,7 +31,7 @@ def tokenize_en(text):
             word = lemmatizer.lemmatize(token.lower(), 'a')
         elif pos.startswith('VB'):
             word = lemmatizer.lemmatize(token.lower(), 'v')
-        if word and word not in stopwords:
+        if word and word not in stopwords and any(c.isalpha() for c in word):
             yield word.lower()
 
 

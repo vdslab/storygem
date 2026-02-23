@@ -56,6 +56,8 @@ def w2v_knn_graph_en(word_count, max_words, n_neighbors, lang, distance_metric, 
 def cluster_words(graph):
     dendrogram = community_louvain.generate_dendrogram(graph, randomize=False)
     dendrogram.append({k: 0 for k in set(dendrogram[-1].values())})
+    pos = nx.spring_layout(graph, seed=42, iterations=50, k=0.5)
+    
     data = []
     for i, layer in enumerate(dendrogram):
         for (k, v) in sorted(layer.items()):
@@ -66,6 +68,8 @@ def cluster_words(graph):
             if i == 0:
                 item['word'] = graph.nodes[k]['word']
                 item['weight'] = graph.nodes[k]['weight']
+                item['x'] = float(pos[k][0])
+                item['y'] = float(pos[k][1])
             data.append(item)
     data.append({
         'id': f'{len(dendrogram)}-0',
