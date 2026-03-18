@@ -99,7 +99,7 @@ const NonConvexVoronoiTreeMap = ({ data }) => {
             </g>
             <g>
               {cells
-                .filter((node) => node.data.word)
+                .filter((node) => node.data.word && node.textTransform?.lines)
                 .map((node) => {
                   return (
                     <RenderingText

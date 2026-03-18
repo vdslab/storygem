@@ -79,10 +79,17 @@ const textMeasure = (text, fontFamily) => {
 };
 
 const layoutNonConvexVoronoiTreeMap = async (args) => {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const worker = new NonConvexWorker();
     worker.onmessage = (event) => {
-      resolve(event.data);
+      if (event.data?.error) {
+        reject(new Error(event.data.error));
+      } else {
+        resolve(event.data);
+      }
+    };
+    worker.onerror = (event) => {
+      reject(new Error(event.message || "Worker error"));
     };
     worker.postMessage(args);
   });
@@ -116,6 +123,7 @@ const fetchFont = async (fontFamily) => {
 const NonConvexForm = (props) => {
   const formRef = useRef();
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(null);
   const [sizeOptimization, setSizeOptimization] = useState(true);
   const [customSvgData, setCustomSvgData] = useState(null);
   const [customSvgName, setCustomSvgName] = useState("");
@@ -126,6 +134,7 @@ const NonConvexForm = (props) => {
   const [layoutMode, setLayoutMode] = useState("dropdown"); // "dropdown" or "horizontal"
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [excludeWords, setExcludeWords] = useState("");
+  const [useInitialPositions, setUseInitialPositions] = useState(true);
 
   const nonConvexRegions = regions.filter((region) => !region.isConvex);
 
@@ -255,6 +264,7 @@ const NonConvexForm = (props) => {
             }
             props.setData(null);
             setLoading(true);
+            setErrorMessage(null);
             try {
               // 除外単語の処理
               let processedText = event.target.elements.text.value;
@@ -427,6 +437,7 @@ const NonConvexForm = (props) => {
                 fontFamily,
                 sizeOptimization,
                 colorPalette: event.target.elements.colorPalette.value,
+                useInitialPositions,
               });
 
               console.log("NonConvexForm - received result:", {
@@ -442,6 +453,7 @@ const NonConvexForm = (props) => {
               });
             } catch (e) {
               console.error(e);
+              setErrorMessage(e.message || "エラーが発生しました。もう一度お試しください。");
             } finally {
               setLoading(false);
             }
@@ -708,6 +720,22 @@ const NonConvexForm = (props) => {
                     </select>
                   </div>
                 </div>
+              </div>
+            </div>
+            <div className="column is-12">
+              <div className="field">
+                <label className="checkbox">
+                  <input
+                    type="checkbox"
+                    checked={useInitialPositions}
+                    onChange={(e) => setUseInitialPositions(e.target.checked)}
+                    style={{ marginRight: "0.5rem" }}
+                  />
+                  スプリングレイアウトの初期位置を使用
+                </label>
+                <p className="help">
+                  単語間の意味的距離がレイアウトに反映されます
+                </p>
               </div>
             </div>
           </div>
@@ -1081,6 +1109,12 @@ const NonConvexForm = (props) => {
               </button>
             </div>
           </div>
+          {errorMessage && (
+            <div className="notification is-danger is-light">
+              <button className="delete" onClick={() => setErrorMessage(null)} />
+              <strong>エラー:</strong> {errorMessage}
+            </div>
+          )}
         </form>
       </section>
     </div>

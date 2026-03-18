@@ -1,7 +1,6 @@
 console.log("nonconvex-worker.js loaded");
 
 import * as d3 from "d3";
-import polygonClipping from "polygon-clipping";
 import GLPK from "glpk.js";
 import { makeLpObject } from "./lp";
 import { fontSize } from "../fonts";
@@ -52,276 +51,155 @@ function polygonCentroid(polygon) {
 
 
 
-// パワー距離を計算する関数
-function powerDistance(point, site, weight) {
-  const dx = point[0] - site[0];
-  const dy = point[1] - site[1];
-  return dx * dx + dy * dy - weight * weight;
-}
+// PW Power Diagram用: 半平面の2点を計算（sandbox clipping.ts準拠）
+// Power distance: d_pw(pi, wi, q) = |q - pi|^2 - wi
+// 境界線: |q - pi|^2 - wi = |q - pj|^2 - wj
+function powerDiagramHalfPlane(pi, wi, pj, wj) {
+  const dx = pj[0] - pi[0];
+  const dy = pj[1] - pi[1];
+  const c =
+    pj[0] * pj[0] +
+    pj[1] * pj[1] -
+    pi[0] * pi[0] -
+    pi[1] * pi[1] -
+    wj +
+    wi;
 
-// 点がどのサイトに属するかを判定
-function assignPointToSite(point, sites, weights) {
-  let minDistance = Infinity;
-  let assignedSite = -1;
-  
-  for (let i = 0; i < sites.length; i++) {
-    const dist = powerDistance(point, sites[i], weights[i]);
-    if (dist < minDistance) {
-      minDistance = dist;
-      assignedSite = i;
-    }
+  // 直線上の1点を求める
+  let px, py;
+  if (Math.abs(dx) > 1e-10) {
+    py = 0;
+    px = c / (2 * dx);
+  } else if (Math.abs(dy) > 1e-10) {
+    px = 0;
+    py = c / (2 * dy);
+  } else {
+    px = pi[0];
+    py = pi[1];
   }
-  
-  return assignedSite;
+
+  // 直線の方向ベクトル（境界線の法線に垂直）
+  const dirX = -dy;
+  const dirY = dx;
+
+  const scale = 10000;
+  const p1 = [px + dirX * scale, py + dirY * scale];
+  const p2 = [px - dirX * scale, py - dirY * scale];
+
+  // 向き調整不要：元の p1/p2 の向きで clipPolygonByHalfPlanePoints が
+  // 保持する領域は常に「2*dx*q.x + 2*dy*q.y <= c」= cell i の正しい半平面。
+  // スワップすると重みが発散した際に逆の領域を保持してしまうため削除。
+  return { p1, p2 };
 }
 
-// 2つのサイト間のパワー境界線（直線）を計算
-function computePowerBisector(site1, site2, weight1, weight2) {
-  const [x1, y1] = site1;
-  const [x2, y2] = site2;
-  const w1sq = weight1 * weight1;
-  const w2sq = weight2 * weight2;
-  
-  // パワー境界線の方程式: 2(x2-x1)x + 2(y2-y1)y = x2²-x1² + y2²-y1² + w1²-w2²
-  const a = 2 * (x2 - x1);
-  const b = 2 * (y2 - y1);
-  const c = x2 * x2 - x1 * x1 + y2 * y2 - y1 * y1 + w1sq - w2sq;
-  
-  return { a, b, c }; // ax + by = c
-}
+// Sutherland-Hodgman半平面クリッピング（sandbox clipping.ts準拠）
+// p1からp2への方向の左側が内側
+function clipPolygonByHalfPlanePoints(polygon, p1, p2) {
+  if (polygon.length === 0) return [];
 
+  const a = p2[1] - p1[1];
+  const b = p1[0] - p2[0];
+  const c = -(a * p1[0] + b * p1[1]);
 
-// 半平面でポリゴンをクリップ
-function clipPolygonByHalfPlane(polygon, line, keepSide) {
-  const { a, b, c } = line;
+  function pointSide(p) {
+    return a * p[0] + b * p[1] + c;
+  }
+
   const clipped = [];
-  const epsilon = 1e-10;
-  
+
   for (let i = 0; i < polygon.length; i++) {
-    const j = (i + 1) % polygon.length;
-    const [x1, y1] = polygon[i];
-    const [x2, y2] = polygon[j];
-    
-    const side1 = a * x1 + b * y1 - c;
-    const side2 = a * x2 + b * y2 - c;
-    
-    const inSide1 = keepSide ? side1 <= epsilon : side1 >= -epsilon;
-    const inSide2 = keepSide ? side2 <= epsilon : side2 >= -epsilon;
-    
-    if (inSide1) {
-      clipped.push([x1, y1]);
-    }
-    
-    if ((inSide1 && !inSide2) || (!inSide1 && inSide2)) {
-      // エッジが境界線と交差
-      const denominator = side1 - side2;
-      if (Math.abs(denominator) > epsilon) {
-        const t = side1 / denominator;
-        if (t >= 0 && t <= 1) {
-          clipped.push([x1 + t * (x2 - x1), y1 + t * (y2 - y1)]);
+    const current = polygon[i];
+    const next = polygon[(i + 1) % polygon.length];
+
+    const currentSide = pointSide(current);
+    const nextSide = pointSide(next);
+
+    const currentInside = currentSide >= -1e-10;
+    const nextInside = nextSide >= -1e-10;
+
+    if (currentInside) {
+      clipped.push(current);
+      if (!nextInside) {
+        // 交点を計算
+        const denom = (current[0] - next[0]) * (p1[1] - p2[1]) - (current[1] - next[1]) * (p1[0] - p2[0]);
+        if (Math.abs(denom) > 1e-10) {
+          const t = ((current[0] - p1[0]) * (p1[1] - p2[1]) - (current[1] - p1[1]) * (p1[0] - p2[0])) / denom;
+          clipped.push([
+            current[0] + t * (next[0] - current[0]),
+            current[1] + t * (next[1] - current[1]),
+          ]);
+        }
+      }
+    } else {
+      if (nextInside) {
+        // 交点を計算
+        const denom = (current[0] - next[0]) * (p1[1] - p2[1]) - (current[1] - next[1]) * (p1[0] - p2[0]);
+        if (Math.abs(denom) > 1e-10) {
+          const t = ((current[0] - p1[0]) * (p1[1] - p2[1]) - (current[1] - p1[1]) * (p1[0] - p2[0])) / denom;
+          clipped.push([
+            current[0] + t * (next[0] - current[0]),
+            current[1] + t * (next[1] - current[1]),
+          ]);
         }
       }
     }
   }
-  
+
   return clipped;
 }
 
-// パワー図のセルを計算する関数（共有境界版）
-function computeClippedVoronoiCells(generators, weights, boundary, desiredAreas = null) {
+// Power Diagramのセルを計算
+// 戻り値: { cells: [polygon,...], cellAreas: [number,...] }
+//
+// アルゴリズム:
+//   境界ポリゴンに対して直接 Sutherland-Hodgman で半平面クリップを適用する。
+//   半平面（凸）でクリップする限り S-H は非凸境界でも面積を正確に計算できる。
+//   polygon-clipping を使わないことで PNG由来の複雑なポリゴンでも正しく動作する。
+//   ※ 非凸境界で切断領域が発生する場合、S-H結果は「零幅の接続辺」を含む非単純
+//     ポリゴンになるが、ショールース公式による面積計算は依然として正確である。
+function computePowerDiagramCells(generators, pwWeights, boundary, debugLog = false) {
   const n = generators.length;
-  
-  // 境界の範囲を取得
-  const xMin = Math.min(...boundary.map(p => p[0]));
-  const xMax = Math.max(...boundary.map(p => p[0]));
-  const yMin = Math.min(...boundary.map(p => p[1]));
-  const yMax = Math.max(...boundary.map(p => p[1]));
-  
-  // 重みを正規化
-  const totalArea = polygonArea(boundary);
-  let normalizedWeights;
-  
-  if (desiredAreas) {
-    normalizedWeights = desiredAreas.map((ratio) => {
-      const targetArea = ratio * totalArea;
-      return Math.sqrt(targetArea / Math.PI) * 0.7; // 重なりを防ぐため調整
-    });
-  } else {
-    const totalWeight = d3.sum(weights);
-    normalizedWeights = weights.map(w => {
-      const targetAreaRatio = w / totalWeight;
-      const targetArea = targetAreaRatio * totalArea;
-      return Math.sqrt(targetArea / Math.PI) * 0.7; // 重なりを防ぐため調整
-    });
-  }
-  
-  // 全てのパワー境界線を事前に計算
-  const bisectors = {};
-  for (let i = 0; i < n; i++) {
-    for (let j = i + 1; j < n; j++) {
-      const bisector = computePowerBisector(
-        generators[i], 
-        generators[j], 
-        normalizedWeights[i], 
-        normalizedWeights[j]
-      );
-      bisectors[`${i}-${j}`] = bisector;
-      bisectors[`${j}-${i}`] = { 
-        a: -bisector.a, 
-        b: -bisector.b, 
-        c: -bisector.c 
-      };
-    }
-  }
-  
-  // 隣接関係を判定するためのグリッドサンプリング
-  const resolution = 100; // 隣接判定用なので低解像度でOK
-  const dx = (xMax - xMin) / resolution;
-  const dy = (yMax - yMin) / resolution;
-  
-  // 隣接セルを検出
-  const neighbors = Array(n).fill(null).map(() => new Set());
-  
-  for (let i = 0; i < resolution; i++) {
-    for (let j = 0; j < resolution; j++) {
-      const x = xMin + (i + 0.5) * dx;
-      const y = yMin + (j + 0.5) * dy;
-      const point = [x, y];
-      
-      if (pointInPolygon(point, boundary)) {
-        const site1 = assignPointToSite(point, generators, normalizedWeights);
-        
-        // 隣接点をチェック
-        const offsets = [[1, 0], [0, 1], [1, 1], [1, -1]];
-        for (const [di, dj] of offsets) {
-          const ni = i + di;
-          const nj = j + dj;
-          if (ni >= 0 && ni < resolution && nj >= 0 && nj < resolution) {
-            const nx = xMin + (ni + 0.5) * dx;
-            const ny = yMin + (nj + 0.5) * dy;
-            const npoint = [nx, ny];
-            
-            if (pointInPolygon(npoint, boundary)) {
-              const site2 = assignPointToSite(npoint, generators, normalizedWeights);
-              if (site1 !== site2 && site1 >= 0 && site2 >= 0) {
-                neighbors[site1].add(site2);
-                neighbors[site2].add(site1);
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-  
-  // セルを構築（共有境界を使用）
   const cells = new Array(n);
-  const processedPairs = new Set();
-  
-  // 重みでソートしてインデックスを取得（大きい順）
-  const sortedIndices = Array.from({length: n}, (_, i) => i)
-    .sort((a, b) => normalizedWeights[b] - normalizedWeights[a]);
-  
-  // 各セルを構築
-  for (const i of sortedIndices) {
-    // 初期セルを大きな矩形として設定
-    const margin = Math.max(xMax - xMin, yMax - yMin) * 2;
-    let cell = [
-      [xMin - margin, yMin - margin],
-      [xMax + margin, yMin - margin],
-      [xMax + margin, yMax + margin],
-      [xMin - margin, yMax + margin]
-    ];
-    
-    // 隣接セルとの境界で切り取る
-    for (const j of neighbors[i]) {
-      const key = i < j ? `${i}-${j}` : `${j}-${i}`;
-      const bisectorKey = `${i}-${j}`;
-      
-      if (bisectors[bisectorKey]) {
-        const bisector = bisectors[bisectorKey];
-        
-        // サイトiの側を保持
-        const [xi, yi] = generators[i];
-        const side = bisector.a * xi + bisector.b * yi - bisector.c;
-        cell = clipPolygonByHalfPlane(cell, bisector, side <= 0);
-        
-        if (cell.length < 3) break;
-        
-        // この境界を処理済みとしてマーク
-        processedPairs.add(key);
-      }
-    }
-    
-    // 隣接していないセルとも境界を計算（安全のため）
-    for (let j = 0; j < n; j++) {
-      if (i !== j && !neighbors[i].has(j)) {
-        const bisectorKey = `${i}-${j}`;
-        if (bisectors[bisectorKey]) {
-          const bisector = bisectors[bisectorKey];
-          
-          // サイトiの側を保持
-          const [xi, yi] = generators[i];
-          const side = bisector.a * xi + bisector.b * yi - bisector.c;
-          cell = clipPolygonByHalfPlane(cell, bisector, side <= 0);
-          
-          if (cell.length < 3) break;
-        }
-      }
-    }
-    
-    // 境界でクリップ
-    if (cell.length >= 3) {
-      try {
-        const intersection = polygonClipping.intersection([cell], [boundary]);
-        if (intersection.length > 0 && intersection[0].length > 0) {
-          cells[i] = intersection[0][0];
-        } else {
-          cells[i] = [];
-        }
-      } catch (e) {
-        console.error(`Clipping error for cell ${i}:`, e);
-        cells[i] = [];
-      }
-    } else {
-      cells[i] = [];
-    }
-  }
-  
-  // 重なり検出と修正
-  for (let i = 0; i < n; i++) {
-    if (!cells[i] || cells[i].length < 3) continue;
-    
-    for (let j = i + 1; j < n; j++) {
-      if (!cells[j] || cells[j].length < 3) continue;
-      
-      // 重なりをチェック
-      try {
-        const intersection = polygonClipping.intersection([cells[i]], [cells[j]]);
-        if (intersection.length > 0 && intersection[0].length > 0) {
-          // 重なりがある場合、境界線で正確に分割
-          const bisectorKey = `${i}-${j}`;
-          if (bisectors[bisectorKey]) {
-            const bisector = bisectors[bisectorKey];
-            
-            // 両方のセルを境界線で再分割
-            const [xi, yi] = generators[i];
-            const sidei = bisector.a * xi + bisector.b * yi - bisector.c;
-            
-            cells[i] = clipPolygonByHalfPlane(cells[i], bisector, sidei <= 0);
-            cells[j] = clipPolygonByHalfPlane(cells[j], bisector, sidei > 0);
-          }
-        }
-      } catch (e) {
-        // エラーは無視
-      }
-    }
-  }
-  
-  return cells;
-}
+  const cellAreas = new Array(n).fill(0);
 
-// セルの後処理（削除）- 使用されていないため削除
+  for (let i = 0; i < n; i++) {
+    // 境界ポリゴンから開始して各半平面でクリップ
+    let cell = [...boundary];
+
+    for (let j = 0; j < n; j++) {
+      if (i === j) continue;
+
+      // 同一座標の母点ペアはスキップ（二等分線が定義できないため）
+      const dx = generators[j][0] - generators[i][0];
+      const dy = generators[j][1] - generators[i][1];
+      if (Math.abs(dx) < 1e-10 && Math.abs(dy) < 1e-10) continue;
+
+      const { p1, p2 } = powerDiagramHalfPlane(
+        generators[i], pwWeights[i],
+        generators[j], pwWeights[j]
+      );
+
+      cell = clipPolygonByHalfPlanePoints(cell, p1, p2);
+
+      if (cell.length === 0) break;
+    }
+
+    cells[i] = cell.length >= 3 ? cell : [];
+    cellAreas[i] = cell.length >= 3 ? polygonArea(cell) : 0;
+  }
+
+  if (debugLog) {
+    const boundaryArea = polygonArea(boundary);
+    const totalCellArea = cellAreas.reduce((s, a) => s + a, 0);
+    const emptyCells = cells.filter(c => !c || c.length === 0).length;
+    console.log(`[PD] n=${n}, empty=${emptyCells}, totalCellArea=${(totalCellArea/boundaryArea*100).toFixed(1)}% of boundary`);
+    if (Math.abs(totalCellArea - boundaryArea) / boundaryArea > 0.05) {
+      console.warn(`[PD] area mismatch! boundary=${boundaryArea.toFixed(1)}, cells sum=${totalCellArea.toFixed(1)}`);
+    }
+  }
+
+  return { cells, cellAreas };
+}
 
 
 
@@ -329,203 +207,146 @@ function computeClippedVoronoiCells(generators, weights, boundary, desiredAreas 
 function computeVoronoiTreemap(
   boundary,
   desiredAreas,
-  weights = null,
-  maxIterations = 100, // 最大反復回数を大幅に削減
-  epsilon = 0.15, // 収束判定の閾値を緩和
+  maxIterations = 200,
+  epsilon = 0.01,
+  initialPoints = null,
 ) {
   const n = desiredAreas.length;
   const totalArea = polygonArea(boundary);
 
-  console.log("computeVoronoiTreemap:", {
-    n,
-    totalArea,
-    desiredAreas,
-    weights,
-    boundaryPoints: boundary.length,
-  });
+  if (n === 0) return { cells: [], generators: [], weights: [], iterations: 0 };
+  if (n === 1) return { cells: [boundary], generators: [polygonCentroid(boundary)], weights: [1], iterations: 0 };
 
-  // 初期サイトの配置を改善（重みに基づいた配置）
-  const generators = [];
   const [xMin, xMax] = d3.extent(boundary, (p) => p[0]);
   const [yMin, yMax] = d3.extent(boundary, (p) => p[1]);
-  
-  // 重みに基づいて初期位置を決定
-  if (n === 1) {
-    // 1つの場合は中心に配置
-    generators.push(polygonCentroid(boundary));
-  } else if (n === 2) {
-    // 2つの場合は重みに応じて配置
-    const ratio = desiredAreas[0];
-    const cx = (xMin + xMax) / 2;
-    const cy = (yMin + yMax) / 2;
-    const dx = (xMax - xMin) * 0.25;
-    
-    generators.push([cx - dx * (1 - ratio), cy]);
-    generators.push([cx + dx * ratio, cy]);
+
+  // 初期生成点の配置
+  let generators;
+  if (initialPoints && initialPoints.length === n) {
+    // 境界外の初期点はランダムな内部点で代替（centroidは非凸領域で境界外になりうるため使わない）
+    generators = initialPoints.map(p =>
+      pointInPolygon(p, boundary) ? [...p] : randomPointInPolygon(boundary)
+    );
   } else {
-    // 3つ以上の場合は、重み付き重心を考慮したグリッド配置
-    const gridSize = Math.ceil(Math.sqrt(n));
-    const cellWidth = (xMax - xMin) / gridSize;
-    const cellHeight = (yMax - yMin) / gridSize;
-    
-    let index = 0;
-    for (let i = 0; i < gridSize && index < n; i++) {
-      for (let j = 0; j < gridSize && index < n; j++) {
-        const x = xMin + (j + 0.5) * cellWidth;
-        const y = yMin + (i + 0.5) * cellHeight;
-        
+    // グリッド配置 + ランダムフォールバック
+    generators = [];
+    if (n === 1) {
+      generators.push(polygonCentroid(boundary));
+    } else {
+      const gridSize = Math.ceil(Math.sqrt(n));
+      const cellWidth = (xMax - xMin) / gridSize;
+      const cellHeight = (yMax - yMin) / gridSize;
+
+      let index = 0;
+      for (let i = 0; i < gridSize && index < n; i++) {
+        for (let j = 0; j < gridSize && index < n; j++) {
+          const x = xMin + (j + 0.5) * cellWidth;
+          const y = yMin + (i + 0.5) * cellHeight;
+          if (pointInPolygon([x, y], boundary)) {
+            generators.push([x, y]);
+            index++;
+          }
+        }
+      }
+      let attempts = 0;
+      while (generators.length < n && attempts < n * 100) {
+        const x = xMin + Math.random() * (xMax - xMin);
+        const y = yMin + Math.random() * (yMax - yMin);
         if (pointInPolygon([x, y], boundary)) {
           generators.push([x, y]);
-          index++;
         }
+        attempts++;
       }
-    }
-    
-    // 不足分はランダムに追加
-    let attempts = 0;
-    while (generators.length < n && attempts < n * 100) {
-      const x = xMin + Math.random() * (xMax - xMin);
-      const y = yMin + Math.random() * (yMax - yMin);
-
-      if (pointInPolygon([x, y], boundary)) {
-        generators.push([x, y]);
-      }
-      attempts++;
     }
   }
 
-  console.log("Initial generators:", generators.length);
-
-  // 重みが指定されていない場合は均等な重みを使用
-  if (!weights) {
-    weights = new Array(n).fill(1);
+  // 不足分を randomPointInPolygon で補完する（非凸境界でグリッドが失敗した場合のフォールバック）
+  while (generators.length < n) {
+    generators.push(randomPointInPolygon(boundary));
   }
+
+  // 初期重み（PW式: desiredArea * 100）
+  let pwWeights = desiredAreas.map(a => a * 100);
 
   let iteration = 0;
-  let stable = false;
+  let converged = false;
+  let cells = [];
+  let lastCellAreas = new Array(n).fill(0); // 最終イテレーションの面積（ログ用）
 
-  while (!stable && iteration < maxIterations) {
-    const cells = computeClippedVoronoiCells(generators, weights, boundary, desiredAreas);
+  while (!converged && iteration < maxIterations) {
+    // 1) Power Diagramを計算
+    const debugLog = (iteration === 0);
+    const pdResult = computePowerDiagramCells(generators, pwWeights, boundary, debugLog);
+    cells = pdResult.cells;
+    const cellAreas = pdResult.cellAreas;
+    lastCellAreas = cellAreas;
 
-    const actualAreas = cells.map((cell) =>
-      cell && cell.length > 0 ? polygonArea(cell) : 0,
-    );
+    // 2) 面積比を計算（全ピース合計を使用）
+    const currentAreas = cellAreas.map(area => area / totalArea);
 
-    if (iteration === 0 || iteration % 20 === 0) {
-      console.log(`Iteration ${iteration} cells:`, {
-        cellsCount: cells.length,
-        nonEmptyCells: cells.filter((c) => c.length > 0).length,
-        actualAreas: actualAreas.slice(0, 5),
-      });
-    }
-
-    // 目標面積を計算（重みに基づく）
-    const targetAreas = desiredAreas.map(ratio => ratio * totalArea);
-    
-    stable = true;
-    let maxRelativeError = 0;
-    let totalError = 0;
-    
+    // 3) 収束チェック
+    converged = true;
+    let maxError = 0;
     for (let i = 0; i < n; i++) {
-      if (actualAreas[i] > 0 && targetAreas[i] > 0) {
-        const actualRatio = actualAreas[i] / totalArea;
-        const desiredRatio = desiredAreas[i];
-        const relativeError = Math.abs(actualRatio - desiredRatio) / desiredRatio;
-        
-        maxRelativeError = Math.max(maxRelativeError, relativeError);
-        totalError += relativeError;
+      const error = Math.abs(currentAreas[i] - desiredAreas[i]);
+      maxError = Math.max(maxError, error);
+      if (error >= epsilon) converged = false;
+    }
 
-        if (relativeError >= epsilon) {
-          stable = false;
+    if (iteration % 50 === 0 || iteration === 0) {
+      console.log(`Iteration ${iteration}: maxError=${(maxError * 100).toFixed(2)}%`);
+    }
+
+    if (converged) {
+      console.log(`Converged after ${iteration} iterations`);
+      break;
+    }
+
+    // 4) 重みをPW式で更新
+    // clampの上限をイテレーションとともに減衰させることでlimit cycle（振動）を防ぐ
+    const maxClamp = Math.max(0.05, 0.9 * (1 - iteration / maxIterations));
+    for (let i = 0; i < n; i++) {
+      if (desiredAreas[i] <= 0) continue;
+      const error = desiredAreas[i] - currentAreas[i];
+      const ratio = error / desiredAreas[i];
+      const clamped = Math.max(-maxClamp, Math.min(maxClamp, ratio));
+      pwWeights[i] = Math.max(0.0001, Math.min(100000, pwWeights[i] * (1 + clamped)));
+    }
+
+    // 5) 生成点を重心に移動（CVTステップ）
+    for (let i = 0; i < n; i++) {
+      if (cells[i] && cells[i].length > 0) {
+        const c = polygonCentroid(cells[i]);
+        if (isFinite(c[0]) && isFinite(c[1])) {
+          generators[i] = c;
         }
+        // NaN/Infinityの場合は生成点を維持（退化セルによる数値エラーを防ぐ）
       }
-    }
-    
-    if (iteration % 20 === 0) {
-      console.log(`Iteration ${iteration} - Max relative error: ${maxRelativeError.toFixed(4)}, Total error: ${totalError.toFixed(4)}`);
-    }
-
-    if (!stable) {
-      // パワー図に対応したLloyd反復
-      // 動的な学習率（収束が進むにつれて減少）
-      const baseLearningRate = 0.7; // 学習率を上げて収束を早める
-      const decayFactor = Math.max(0.2, 1 - iteration / maxIterations);
-      const learningRate = baseLearningRate * decayFactor;
-      
-      // 重みの更新も考慮
-      const newWeights = [...weights];
-      
-      generators.forEach((gen, i) => {
-        if (cells[i] && cells[i].length > 0 && actualAreas[i] > 0 && targetAreas[i] > 0) {
-          const centroid = polygonCentroid(cells[i]);
-          
-          // 面積比を計算
-          const areaRatio = targetAreas[i] / actualAreas[i];
-          
-          // 重みの調整をより積極的に行う
-          if (Math.abs(areaRatio - 1) > 0.05) {
-            // 面積比に応じて重みを調整
-            newWeights[i] = weights[i] * Math.sqrt(areaRatio);
-          }
-          
-          // サイト位置も重心に向かって移動
-          const newGen = [
-            gen[0] + learningRate * (centroid[0] - gen[0]),
-            gen[1] + learningRate * (centroid[1] - gen[1])
-          ];
-          
-          // 新しい位置が境界内にあることを確認
-          if (pointInPolygon(newGen, boundary)) {
-            generators[i] = newGen;
-          } else {
-            // 境界外の場合は、境界に向かって少しずつ移動
-            const stepSize = 0.9;
-            let currentPoint = gen;
-            let nextPoint = newGen;
-            
-            // 二分探索で境界内の最大移動距離を見つける
-            for (let j = 0; j < 10; j++) {
-              const midPoint = [
-                currentPoint[0] + stepSize * (nextPoint[0] - currentPoint[0]),
-                currentPoint[1] + stepSize * (nextPoint[1] - currentPoint[1])
-              ];
-              
-              if (pointInPolygon(midPoint, boundary)) {
-                generators[i] = midPoint;
-                break;
-              }
-            }
-          }
-        }
-      });
-      
-      // 重みを更新
-      weights = newWeights;
+      // セルが空の場合: 重みが増加するので次回イテレーションで改善される
     }
 
     iteration++;
   }
 
-  const finalCells = computeClippedVoronoiCells(generators, weights, boundary, desiredAreas);
-  
-  // 最終的な面積を計算して比較
-  const finalAreas = finalCells.map((cell) =>
-    cell && cell.length > 0 ? polygonArea(cell) : 0
-  );
-  
-  console.log("Final area comparison:");
-  for (let i = 0; i < n; i++) {
-    if (finalAreas[i] > 0) {
-      const actualRatio = finalAreas[i] / totalArea;
-      const targetRatio = desiredAreas[i];
-      console.log(`Cell ${i}: target=${(targetRatio * 100).toFixed(2)}%, actual=${(actualRatio * 100).toFixed(2)}%, weight=${weights[i]}`);
-    }
+  // 収束・失敗問わず常に最終面積サマリーを出力
+  {
+    const finalAreas = lastCellAreas.map(a => a / totalArea);
+    const finalAreaSum = finalAreas.reduce((s, a) => s + a, 0);
+    const status = converged ? "OK" : "WARN(not converged)";
+    const emptyCnt = cells.filter(c => !c || c.length === 0).length;
+    console.log(`[AREA] ${status} | sum=${(finalAreaSum * 100).toFixed(1)}% | empty=${emptyCnt} | n=${n}`);
+    finalAreas.forEach((a, i) => {
+      const d = desiredAreas[i];
+      const errPct = (a - d) * 100;
+      const mark = Math.abs(errPct) > 2 ? " ⚠" : "";
+      console.log(`  [${i}] desired=${(d*100).toFixed(2)}%  actual=${(a*100).toFixed(2)}%  err=${errPct >= 0 ? "+" : ""}${errPct.toFixed(2)}%${mark}`);
+    });
   }
 
   return {
-    cells: finalCells,
-    generators: generators,
-    weights: weights,
+    cells,
+    generators,
+    weights: pwWeights,
     iterations: iteration,
   };
 }
@@ -804,6 +625,8 @@ async function textTransform(node, sizeOptimization, glpk) {
       }
     }
 
+    // LP が有効なスケールを見つけられなかった場合は null を返す（テキストを非表示）
+    if (resultText === null) return null;
     return { s, dx, dy, a, polygon: textPolygon, lines: resultText };
   } else {
     // 凸包が凸多角形でない場合、または最適化が無効な場合は従来の方法を使用
@@ -852,7 +675,96 @@ async function textTransform(node, sizeOptimization, glpk) {
   }
 }
 
-function buildHierarchicalVoronoiTreemap(root, boundary, colorScale) {
+// ポリゴン内のランダムな点を生成（rejection sampling）
+// 非凸領域でも正しく境界内の点を返す
+function randomPointInPolygon(polygon) {
+  const xMin = Math.min(...polygon.map(p => p[0]));
+  const xMax = Math.max(...polygon.map(p => p[0]));
+  const yMin = Math.min(...polygon.map(p => p[1]));
+  const yMax = Math.max(...polygon.map(p => p[1]));
+
+  for (let i = 0; i < 2000; i++) {
+    const x = xMin + Math.random() * (xMax - xMin);
+    const y = yMin + Math.random() * (yMax - yMin);
+    if (pointInPolygon([x, y], polygon)) return [x, y];
+  }
+  // フォールバック: ポリゴンの最初の頂点付近の内側点を探す
+  for (const p of polygon) {
+    const cx = (p[0] + xMin + xMax) / 3;
+    const cy = (p[1] + yMin + yMax) / 3;
+    if (pointInPolygon([cx, cy], polygon)) return [cx, cy];
+  }
+  return [...polygon[0]];
+}
+
+// ネットワーク座標系からポリゴン座標系へスケーリング（sandbox geometry.ts準拠）
+// points: [[x,y],...] (API座標 ≈ [-1, 1]範囲)
+// polygon: 対象領域の境界
+// 戻り値: polygon内に80%スケールで収まる座標配列
+function scalePointsToPolygon(points, polygon) {
+  if (points.length === 0 || polygon.length === 0) return [];
+
+  const minX = Math.min(...polygon.map(p => p[0]));
+  const maxX = Math.max(...polygon.map(p => p[0]));
+  const minY = Math.min(...polygon.map(p => p[1]));
+  const maxY = Math.max(...polygon.map(p => p[1]));
+
+  const polyWidth = maxX - minX;
+  const polyHeight = maxY - minY;
+
+  const pointsMinX = Math.min(...points.map(p => p[0]));
+  const pointsMaxX = Math.max(...points.map(p => p[0]));
+  const pointsMinY = Math.min(...points.map(p => p[1]));
+  const pointsMaxY = Math.max(...points.map(p => p[1]));
+
+  const pointsWidth = pointsMaxX - pointsMinX;
+  const pointsHeight = pointsMaxY - pointsMinY;
+
+  const scale = Math.min(
+    (polyWidth * 0.8) / (pointsWidth || 1),
+    (polyHeight * 0.8) / (pointsHeight || 1)
+  );
+
+  const srcCX = pointsMinX + pointsWidth / 2;
+  const srcCY = pointsMinY + pointsHeight / 2;
+  const dstCX = minX + polyWidth / 2;
+  const dstCY = minY + polyHeight / 2;
+
+  return points.map(p => [
+    dstCX + (p[0] - srcCX) * scale,
+    dstCY + (p[1] - srcCY) * scale,
+  ]);
+}
+
+// 中間ノードに葉ノードの加重平均位置を計算（後順traversal）
+function computePositionsForAllNodes(root) {
+  function assignPosition(node) {
+    if (!node.children || node.children.length === 0) {
+      // 葉ノード: data.x, data.y をそのまま使用
+      return;
+    }
+    node.children.forEach(assignPosition);
+    const totalW = d3.sum(node.children, c => c.value);
+    if (totalW > 0) {
+      const xSum = d3.sum(node.children, c => {
+        const x = c.data.x;
+        return x !== undefined ? x * c.value : 0;
+      });
+      const ySum = d3.sum(node.children, c => {
+        const y = c.data.y;
+        return y !== undefined ? y * c.value : 0;
+      });
+      const hasAnyX = node.children.some(c => c.data.x !== undefined);
+      if (hasAnyX) {
+        node.data.x = xSum / totalW;
+        node.data.y = ySum / totalW;
+      }
+    }
+  }
+  assignPosition(root);
+}
+
+function buildHierarchicalVoronoiTreemap(root, boundary, colorScale, useInitialPositions = true) {
   const allNodes = [];
 
   function processLevel(node, nodeBoundary, depth = 0) {
@@ -877,27 +789,19 @@ function buildHierarchicalVoronoiTreemap(root, boundary, colorScale) {
       (child) => child.value / totalWeight,
     );
     
-    // 各子ノードの重みを抽出
-    const childWeights = node.children.map((child) => child.value);
+    // 初期点の抽出と渡し
+    let initialPoints = null;
+    if (useInitialPositions) {
+      const hasAllPositions = node.children.every(c =>
+        c.data.x !== undefined && c.data.y !== undefined
+      );
+      if (hasAllPositions) {
+        const rawPoints = node.children.map(c => [c.data.x, c.data.y]);
+        initialPoints = scalePointsToPolygon(rawPoints, nodeBoundary);
+      }
+    }
 
-    console.log(`Level ${depth} - Computing treemap for ${node.children.length} children with weights:`, 
-      node.children.map(c => ({ 
-        id: c.data.id, 
-        value: c.value, 
-        ratio: c.value / totalWeight,
-        originalData: c.data.data
-      }))
-    );
-    
-    // デバッグ用：重みの分布を確認
-    console.log(`Weight distribution at level ${depth}:`, {
-      min: Math.min(...childWeights),
-      max: Math.max(...childWeights),
-      avg: totalWeight / node.children.length,
-      weights: childWeights
-    });
-
-    const result = computeVoronoiTreemap(nodeBoundary, desiredAreas, childWeights);
+    const result = computeVoronoiTreemap(nodeBoundary, desiredAreas, 200, 0.01, initialPoints);
 
     node.children.forEach((child, i) => {
       if (result.cells[i] && result.cells[i].length > 0) {
@@ -937,91 +841,31 @@ async function layoutNonConvexVoronoiTreemap({
   fontFamily,
   sizeOptimization,
   colorPalette,
+  useInitialPositions = true,
   glpk,
 }) {
   const stratify = d3.stratify();
   const root = stratify(data);
   d3.hierarchy(root);
-  // 重みをそのまま使用（スケーリングしない）
   root.sum((d) => d.weight || 0);
 
   const colorScale = d3.scaleOrdinal(d3[colorPalette]);
 
-  // データ構造の詳細をログ出力
-  console.log("Data structure:", {
-    totalData: data.length,
-    rootChildren: root.children?.length,
-    totalLeaves: root.leaves().length,
-    hierarchy: root
-  });
-  
-  // 階層ごとの重み分布を確認
-  console.log("Hierarchical weight distribution:");
-  function logHierarchy(node, depth = 0) {
-    const indent = "  ".repeat(depth);
-    if (node.children) {
-      const childrenWeights = node.children.map(c => ({
-        id: c.data.id,
-        value: c.value,
-        childCount: c.children?.length || 0
-      }));
-      console.log(`${indent}Node ${node.data.id}: value=${node.value}, children=${childrenWeights.length}`);
-      childrenWeights.forEach(cw => {
-        console.log(`${indent}  - ${cw.id}: value=${cw.value}, hasChildren=${cw.childCount > 0}`);
-      });
-      node.children.forEach(child => logHierarchy(child, depth + 1));
-    }
+  // 中間ノードの位置を葉ノードから計算
+  if (useInitialPositions) {
+    computePositionsForAllNodes(root);
   }
-  logHierarchy(root);
 
   const allNodes = buildHierarchicalVoronoiTreemap(
     root,
     outsideRegion,
     colorScale,
+    useInitialPositions,
   );
 
-  // 総面積を計算
-  const totalArea = polygonArea(outsideRegion);
-  
-  // 葉ノードの面積と重みの関係を確認
-  const leafNodes = allNodes.filter(n => n.height === 0);
-  console.log("Leaf nodes area vs weight comparison:");
-  
-  // 同じ親を持つ葉ノードをグループ化
-  const nodesByParent = {};
-  leafNodes.forEach(node => {
-    const parentId = node.parent?.data?.id || "root";
-    if (!nodesByParent[parentId]) {
-      nodesByParent[parentId] = [];
-    }
-    nodesByParent[parentId].push(node);
-  });
-  
-  // 各グループ内で面積と重みの比較
-  Object.entries(nodesByParent).forEach(([parentId, nodes]) => {
-    console.log(`\nParent: ${parentId}`);
-    const parentTotalArea = nodes.reduce((sum, n) => sum + polygonArea(n.polygon), 0);
-    nodes.forEach(node => {
-      const nodeArea = polygonArea(node.polygon);
-      const areaRatio = nodeArea / parentTotalArea;
-      console.log(`  ${node.data.word}: weight=${node.value}, area=${nodeArea.toFixed(2)}, ratio=${(areaRatio * 100).toFixed(2)}%`);
-    });
-  });
-  
   for (const node of allNodes) {
     node.fontFamily = fontFamily;
-    
-    // 各ノードの実際の面積を計算
-    if (node.polygon && node.polygon.length > 0) {
-      node.actualArea = polygonArea(node.polygon);
-      node.areaRatio = node.actualArea / totalArea;
-    }
-    
-    // 元の重み情報も保持
-    if (node.data && node.data.data) {
-      node.originalWeight = node.data.data.weight;
-    }
-    
+
     if (
       node.height === 0 &&
       node.data &&
@@ -1045,15 +889,7 @@ async function layoutNonConvexVoronoiTreemap({
 }
 
 onmessage = async (event) => {
-  const { data, outsideRegion, fontFamily, sizeOptimization, colorPalette } = event.data;
-
-  console.log("Worker received data:", {
-    dataLength: data?.length,
-    outsideRegionLength: outsideRegion?.length,
-    fontFamily,
-    sizeOptimization,
-    colorPalette,
-  });
+  const { data, outsideRegion, fontFamily, sizeOptimization, colorPalette, useInitialPositions } = event.data;
 
   try {
     const glpk = await GLPK();
@@ -1063,6 +899,7 @@ onmessage = async (event) => {
       fontFamily,
       sizeOptimization,
       colorPalette,
+      useInitialPositions: useInitialPositions !== false,
       glpk,
     });
     console.log("Worker result:", {
