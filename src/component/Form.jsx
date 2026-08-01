@@ -36,7 +36,10 @@ const fetchGraph = async ({ text, words, nNeighbors, lang, weight }) => {
   params.append("n_neighbors", nNeighbors);
   params.append("lang", lang);
   params.append("weight", weight);
-  const url = `${import.meta.env.VITE_SERVER_URL}/knn_graph?${params}`;
+  const baseUrl = import.meta.env.DEV
+    ? "/api"
+    : import.meta.env.VITE_SERVER_URL;
+  const url = `${baseUrl}/knn_graph?${params}`;
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -118,7 +121,7 @@ const Form = (props) => {
   useEffect(() => {
     (async () => {
       const text = await fetchWikipediaData(
-        "https://en.wikipedia.org/wiki/Dog"
+        "https://en.wikipedia.org/wiki/Dog",
       );
       formRef.current.elements.text.value = text;
     })();
@@ -153,10 +156,10 @@ const Form = (props) => {
               const sizeOptimization =
                 event.target.elements.sizeOptimization.value === "enabled"
                   ? {
-                      rotateStep: rotate === "none" ? null : +rotate,
-                      allowHyphenation:
-                        event.target.elements.hyphenation.value === "enabled",
-                    }
+                    rotateStep: rotate === "none" ? null : +rotate,
+                    allowHyphenation:
+                      event.target.elements.hyphenation.value === "enabled",
+                  }
                   : null;
               for (const item of data) {
                 if (item.word) {

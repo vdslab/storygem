@@ -1,0 +1,160 @@
+import { useId, useRef } from "react";
+import { fontSize } from "../fonts";
+import { SVGConverter } from "../image";
+
+const RenderingText = ({ node, color }) => {
+  const { s, dx, dy, a, lines } = node.textTransform;
+  return (
+    <g key={node.id}>
+      {lines.map((line, i) => {
+        return (
+          <text
+            key={i}
+            fontSize={fontSize}
+            fontFamily={node.fontFamily}
+            fill={color}
+            transform={`translate(${dx},${dy})scale(${s})rotate(${a})`}
+            y={fontSize * i}
+          >
+            {line}
+          </text>
+        );
+      })}
+    </g>
+  );
+};
+
+const download = (url, filename) => {
+  const link = document.createElement("a");
+  link.download = filename;
+  link.href = url;
+  link.click();
+};
+
+const NonConvexVoronoiTreeMap = ({ data }) => {
+  const svgRef = useRef();
+  const regionClipId = useId().replace(/:/g, "");
+
+  if (data == null) {
+    return null;
+  }
+
+  const { cells, outsideRegion, styleContent } = data;
+
+  const maxHeight = Math.max(...cells.map((cell) => cell.height + 1));
+  const fontColor = "#444";
+  const defaultStrokeWidth = 2; // デフォルトの境界線の太さ
+  const margin = {
+    top: maxHeight / 2,
+    right: maxHeight / 2,
+    bottom: maxHeight / 2,
+    left: maxHeight / 2,
+  };
+  const outsideLeft = Math.min(...outsideRegion.map((p) => p[0]));
+  const outsideRight = Math.max(...outsideRegion.map((p) => p[0]));
+  const outsideTop = Math.min(...outsideRegion.map((p) => p[1]));
+  const outsideBottom = Math.max(...outsideRegion.map((p) => p[1]));
+  const displayWidth = outsideRight - outsideLeft + margin.left + margin.right;
+  const displayHeight = outsideBottom - outsideTop + margin.top + margin.bottom;
+
+  async function initConverter() {
+    return await SVGConverter.loadFromElement(
+      svgRef.current,
+      displayWidth,
+      displayHeight,
+    );
+  }
+  return (
+    <div className="container">
+      <section className="section">
+        <figure className="image">
+          <svg
+            ref={svgRef}
+            className="has-ratio"
+            viewBox={`${outsideLeft - margin.left} ${outsideTop - margin.top} ${displayWidth} ${displayHeight}`}
+          >
+            <defs>
+              <style>{styleContent}</style>
+              <clipPath id={regionClipId} clipPathUnits="userSpaceOnUse">
+                <path d={"M" + outsideRegion.join("L") + "Z"} />
+              </clipPath>
+            </defs>
+            <g clipPath={`url(#${regionClipId})`}>
+              {cells.map((node) => {
+                return (
+                  <g key={node.id}>
+                    <path
+                      d={"M" + node.polygon.join("L") + "Z"}
+                      fill={node.color}
+                      stroke={fontColor}
+                      strokeWidth={defaultStrokeWidth}
+                    />
+                  </g>
+                );
+              })}
+            </g>
+            <path
+              d={"M" + outsideRegion.join("L") + "Z"}
+              fill="none"
+              stroke={fontColor}
+              strokeWidth={defaultStrokeWidth}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <g clipPath={`url(#${regionClipId})`}>
+              {cells
+                .filter((node) => node.data.word && node.textTransform?.lines)
+                .map((node) => {
+                  return (
+                    <RenderingText
+                      key={node.id}
+                      node={node}
+                      color={fontColor}
+                    />
+                  );
+                })}
+            </g>
+          </svg>
+        </figure>
+        <div className="field is-grouped">
+          <div className="control">
+            <button
+              className="button is-light is-small"
+              onClick={async () => {
+                const converter = await initConverter();
+                download(await converter.svgURL(), "image.svg");
+              }}
+            >
+              Save as SVG
+            </button>
+          </div>
+          <div className="control">
+            <button
+              className="button is-light is-small"
+              onClick={async () => {
+                const converter = await initConverter();
+                download(await converter.pngURL(), "image.png");
+              }}
+            >
+              Save as PNG
+            </button>
+          </div>
+          <div className="control">
+            <button
+              className="button is-light is-small"
+              onClick={async () => {
+                const converter = await initConverter();
+                download(await converter.jpegURL(), "image.jpeg");
+              }}
+            >
+              Save as JPEG
+            </button>
+          </div>
+        </div>
+
+      </section>
+    </div>
+  );
+};
+
+export default NonConvexVoronoiTreeMap;

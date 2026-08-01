@@ -22,7 +22,7 @@ class ErrorBoundary extends React.Component {
         <div className="container">
           <section className="section">
             <div className="notification is-danger">
-              <p className="title is-5">Rendering failed</p>
+              <p className="title is-5">描画エラーが発生しました</p>
               <p className="subtitle is-6" style={{ wordBreak: "break-all" }}>
                 {this.state.error?.message || "Unknown error"}
               </p>
@@ -33,7 +33,7 @@ class ErrorBoundary extends React.Component {
                   this.props.onReset?.();
                 }}
               >
-                Clear and retry
+                クリアして再試行
               </button>
             </div>
           </section>
@@ -44,18 +44,28 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-const App = () => {
+const NonConvexVoronoiTreeMapPage = () => {
   const [data, setData] = useState(null);
 
   return (
-    <div className="App">
-      <header className="navbar is-light storygem-header">
+    <div>
+      <div className="navbar is-light">
         <div className="navbar-brand">
           <div className="navbar-item">
             <h1 className="title is-4">StoryGem</h1>
           </div>
         </div>
-      </header>
+        <div className="navbar-menu">
+          <div className="navbar-start">
+            <a href="/" className="navbar-item">
+              Home
+            </a>
+            <a href="/nonconvex-voronoi-treemap" className="navbar-item is-active">
+              非凸領域のVoronoi Treemap
+            </a>
+          </div>
+        </div>
+      </div>
       <NonConvexForm setData={setData} />
       <ErrorBoundary onReset={() => setData(null)}>
         <NonConvexVoronoiTreeMap data={data} />
@@ -64,4 +74,4 @@ const App = () => {
   );
 };
 
-export default App;
+export default NonConvexVoronoiTreeMapPage;
