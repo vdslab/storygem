@@ -1,3 +1,88 @@
 svg text {
   user-select: none;
 }
+
+body {
+  color: #24272c;
+}
+
+.storygem-header {
+  border-bottom: 1px solid #dfe3e8;
+  box-shadow: none;
+}
+
+.storygem-header .title {
+  margin-bottom: 0;
+}
+
+.textarea {
+  min-height: 12rem;
+}
+
+.form-disclosure {
+  margin: 0.75rem 0 1rem;
+  overflow: hidden;
+  border: 1px solid #d8dde3;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.form-disclosure summary {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  color: #30343a;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.form-disclosure summary::-webkit-details-marker {
+  display: none;
+}
+
+.form-disclosure summary::after {
+  margin-left: auto;
+  color: #5f6b76;
+  content: "+";
+  font-size: 1.15rem;
+  font-weight: 400;
+}
+
+.form-disclosure[open] summary {
+  border-bottom: 1px solid #e5e8ec;
+}
+
+.form-disclosure[open] summary::after {
+  content: "\2212";
+}
+
+.form-disclosure summary:focus-visible {
+  outline: 2px solid #327a77;
+  outline-offset: -2px;
+}
+
+.disclosure-note {
+  overflow: hidden;
+  color: #737c86;
+  font-size: 0.8rem;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.disclosure-content {
+  padding: 1rem;
+}
+
+.region-preview-content {
+  background: #f3f5f6;
+}
+
+@media (max-width: 768px) {
+  .disclosure-note {
+    max-width: 45vw;
+  }
+}

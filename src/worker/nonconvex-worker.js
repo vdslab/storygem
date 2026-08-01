@@ -34,18 +34,62 @@ function polygonArea(polygon) {
 function polygonCentroid(polygon) {
   let cx = 0,
     cy = 0;
-  const area = polygonArea(polygon);
+  let signedDoubleArea = 0;
 
   for (let i = 0; i < polygon.length; i++) {
     const j = (i + 1) % polygon.length;
     const factor =
       polygon[i][0] * polygon[j][1] - polygon[j][0] * polygon[i][1];
+    signedDoubleArea += factor;
     cx += (polygon[i][0] + polygon[j][0]) * factor;
     cy += (polygon[i][1] + polygon[j][1]) * factor;
   }
 
-  const scale = 1 / (6 * area);
+  if (Math.abs(signedDoubleArea) < 1e-10) {
+    const meanX = d3.mean(polygon, (p) => p[0]);
+    const meanY = d3.mean(polygon, (p) => p[1]);
+    return [meanX || 0, meanY || 0];
+  }
+
+  const scale = 1 / (3 * signedDoubleArea);
   return [cx * scale, cy * scale];
+}
+
+function representativePointInPolygon(polygon, preferredPoint = null) {
+  if (
+    preferredPoint &&
+    isFinite(preferredPoint[0]) &&
+    isFinite(preferredPoint[1]) &&
+    pointInPolygon(preferredPoint, polygon)
+  ) {
+    return preferredPoint;
+  }
+
+  const xMin = Math.min(...polygon.map((p) => p[0]));
+  const xMax = Math.max(...polygon.map((p) => p[0]));
+  const yMin = Math.min(...polygon.map((p) => p[1]));
+  const yMax = Math.max(...polygon.map((p) => p[1]));
+  const target = preferredPoint || [(xMin + xMax) / 2, (yMin + yMax) / 2];
+
+  let bestPoint = null;
+  let bestDistance = Infinity;
+  const steps = 32;
+  for (let yi = 0; yi <= steps; yi++) {
+    const y = yMin + ((yMax - yMin) * yi) / steps;
+    for (let xi = 0; xi <= steps; xi++) {
+      const x = xMin + ((xMax - xMin) * xi) / steps;
+      const point = [x, y];
+      if (!pointInPolygon(point, polygon)) continue;
+
+      const distance = Math.hypot(point[0] - target[0], point[1] - target[1]);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestPoint = point;
+      }
+    }
+  }
+
+  return bestPoint || randomPointInPolygon(polygon);
 }
 
 
@@ -215,7 +259,15 @@ function computeVoronoiTreemap(
   const totalArea = polygonArea(boundary);
 
   if (n === 0) return { cells: [], generators: [], weights: [], iterations: 0 };
-  if (n === 1) return { cells: [boundary], generators: [polygonCentroid(boundary)], weights: [1], iterations: 0 };
+  if (n === 1) {
+    const centroid = polygonCentroid(boundary);
+    return {
+      cells: [boundary],
+      generators: [representativePointInPolygon(boundary, centroid)],
+      weights: [1],
+      iterations: 0,
+    };
+  }
 
   const [xMin, xMax] = d3.extent(boundary, (p) => p[0]);
   const [yMin, yMax] = d3.extent(boundary, (p) => p[1]);
@@ -231,7 +283,8 @@ function computeVoronoiTreemap(
     // グリッド配置 + ランダムフォールバック
     generators = [];
     if (n === 1) {
-      generators.push(polygonCentroid(boundary));
+      const centroid = polygonCentroid(boundary);
+      generators.push(representativePointInPolygon(boundary, centroid));
     } else {
       const gridSize = Math.ceil(Math.sqrt(n));
       const cellWidth = (xMax - xMin) / gridSize;
@@ -318,7 +371,7 @@ function computeVoronoiTreemap(
       if (cells[i] && cells[i].length > 0) {
         const c = polygonCentroid(cells[i]);
         if (isFinite(c[0]) && isFinite(c[1])) {
-          generators[i] = c;
+          generators[i] = representativePointInPolygon(cells[i], c);
         }
         // NaN/Infinityの場合は生成点を維持（退化セルによる数値エラーを防ぐ）
       }
@@ -630,7 +683,10 @@ async function textTransform(node, sizeOptimization, glpk) {
     return { s, dx, dy, a, polygon: textPolygon, lines: resultText };
   } else {
     // 凸包が凸多角形でない場合、または最適化が無効な場合は従来の方法を使用
-    const [cx, cy] = polygonCentroid(polygon);
+    const [cx, cy] = representativePointInPolygon(
+      polygon,
+      polygonCentroid(polygon),
+    );
     const measure = node.data.textMeasure;
     
     if (!measure || !measure.width || !measure.actualBoundingBoxAscent) {

@@ -50,6 +50,10 @@ const fetchGraph = async ({ text, words, nNeighbors, lang, weight }) => {
   return response.json();
 };
 
+const escapeRegExp = (value) => {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
 const textImageData = (text, fontFamily) => {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
@@ -125,24 +129,17 @@ const NonConvexForm = (props) => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
   const [sizeOptimization, setSizeOptimization] = useState(true);
-  const [customSvgData, setCustomSvgData] = useState(null);
-  const [customSvgName, setCustomSvgName] = useState("");
   const [customPngData, setCustomPngData] = useState(null);
   const [customPngName, setCustomPngName] = useState("");
   const [selectedRegionPreview, setSelectedRegionPreview] = useState(null);
   const [previewError, setPreviewError] = useState(null);
-  const [layoutMode, setLayoutMode] = useState("dropdown"); // "dropdown" or "horizontal"
-  const [selectedRegion, setSelectedRegion] = useState(null);
+  const [selectedRegion, setSelectedRegion] = useState(regions[0].label);
   const [excludeWords, setExcludeWords] = useState("");
-  const [useInitialPositions, setUseInitialPositions] = useState(true);
 
+  const convexRegions = regions.filter((region) => region.isConvex);
   const nonConvexRegions = regions.filter((region) => !region.isConvex);
 
-  // カスタムSVGまたはPNGがある場合は選択肢に追加
-  let allRegions = [...nonConvexRegions];
-  if (customSvgData) {
-    allRegions.push({ label: `Custom SVG: ${customSvgName}`, isCustom: true, type: "svg" });
-  }
+  const allRegions = [...regions];
   if (customPngData) {
     allRegions.push({ label: `Custom PNG: ${customPngName}`, isCustom: true, type: "png" });
   }
@@ -162,45 +159,7 @@ const NonConvexForm = (props) => {
       let previewPoints;
 
       if (selectedRegion.isCustom) {
-        if (selectedRegion.type === "svg" && customSvgData) {
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(customSvgData, "image/svg+xml");
-          const pathElement = doc.querySelector("path");
-
-          if (pathElement) {
-            const pathData = pathElement.getAttribute("d");
-            const transform = pathElement.getAttribute("transform");
-
-            let translateX = 0;
-            let translateY = 0;
-            if (transform) {
-              const translateMatch = transform.match(
-                /translate\(\s*([+-]?[\d.]+)\s*,\s*([+-]?[\d.]+)\s*\)/,
-              );
-              if (translateMatch) {
-                translateX = parseFloat(translateMatch[1]);
-                translateY = parseFloat(translateMatch[2]);
-              }
-            }
-
-            const { parseSVGPath, simplifyPoints } = await import(
-              "../utils/svgPathParser"
-            );
-            const scale = 1.5;
-            const offsetX = 500;
-            const offsetY = 500;
-
-            let points = parseSVGPath(
-              pathData,
-              scale,
-              offsetX - translateX * scale,
-              offsetY - translateY * scale,
-            );
-
-            // SVGファイルはそのままの座標系を使用
-            previewPoints = simplifyPoints(points, 0.5);
-          }
-        } else if (selectedRegion.type === "png" && customPngData) {
+        if (selectedRegion.type === "png" && customPngData) {
           const { extractContourFromPNG } = await import(
             "../utils/pngContourExtractor"
           );
@@ -234,12 +193,18 @@ const NonConvexForm = (props) => {
   };
 
   useEffect(() => {
-    if (nonConvexRegions.length > 0) {
-      const firstRegion = nonConvexRegions[0];
-      setSelectedRegion(firstRegion.label);
-      updateRegionPreview(firstRegion.label);
+    if (regions.length > 0) {
+      updateRegionPreview(regions[0].label);
     }
   }, []);
+
+  useEffect(() => {
+    if (!customPngData || !customPngName) return;
+
+    const customLabel = `Custom PNG: ${customPngName}`;
+    setSelectedRegion(customLabel);
+    updateRegionPreview(customLabel);
+  }, [customPngData, customPngName]);
 
   useEffect(() => {
     (async () => {
@@ -253,8 +218,7 @@ const NonConvexForm = (props) => {
   return (
     <div className="container">
       <section className="section">
-        <h1 className="title">非凸領域のVoronoi Treemap</h1>
-        <p className="subtitle"></p>
+        <h1 className="title">Voronoi Treemap</h1>
         <form
           ref={formRef}
           onSubmit={async (event) => {
@@ -279,8 +243,11 @@ const NonConvexForm = (props) => {
                 
                 // 各除外単語をテキストから削除
                 wordsToExclude.forEach(word => {
-                  // 単語境界を考慮した正規表現で置換
-                  const regex = new RegExp(`\\b${word}\\b`, "gi");
+                  const escapedWord = escapeRegExp(word);
+                  const pattern = /^[A-Za-z0-9_]+$/.test(word)
+                    ? `\\b${escapedWord}\\b`
+                    : escapedWord;
+                  const regex = new RegExp(pattern, "gi");
                   processedText = processedText.replace(regex, "");
                 });
                 
@@ -303,59 +270,19 @@ const NonConvexForm = (props) => {
 
               const rotate = event.target.elements.rotate.value;
               const selectedRegionLabel =
-                event.target.elements.ousideRegion.value;
+                event.target.elements.outsideRegion.value;
               const selectedRegion = allRegions.find(
                 ({ label }) => label === selectedRegionLabel,
               );
 
+              if (!selectedRegion) {
+                throw new Error("Selected outside region was not found.");
+              }
+
               let outsideRegion;
               if (selectedRegion.isCustom) {
                 try {
-                  if (selectedRegion.type === "svg" && customSvgData) {
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(
-                      customSvgData,
-                      "image/svg+xml",
-                    );
-                    const pathElement = doc.querySelector("path");
-
-                    if (pathElement) {
-                      const pathData = pathElement.getAttribute("d");
-                      const transform = pathElement.getAttribute("transform");
-
-                      let translateX = 0;
-                      let translateY = 0;
-                      if (transform) {
-                        const translateMatch = transform.match(
-                          /translate\(\s*([+-]?[\d.]+)\s*,\s*([+-]?[\d.]+)\s*\)/,
-                        );
-                        if (translateMatch) {
-                          translateX = parseFloat(translateMatch[1]);
-                          translateY = parseFloat(translateMatch[2]);
-                        }
-                      }
-
-                      // svgPathParserを使用して解析
-                      const { parseSVGPath, simplifyPoints } = await import(
-                        "../utils/svgPathParser"
-                      );
-                      const scale = 1.5;
-                      const offsetX = 500;
-                      const offsetY = 500;
-
-                      let points = parseSVGPath(
-                        pathData,
-                        scale,
-                        offsetX - translateX * scale,
-                        offsetY - translateY * scale,
-                      );
-
-                      // SVGファイルはそのままの座標系を使用
-                      outsideRegion = simplifyPoints(points, 0.5);
-                    } else {
-                      throw new Error("No path element found in custom SVG");
-                    }
-                  } else if (selectedRegion.type === "png" && customPngData) {
+                  if (selectedRegion.type === "png" && customPngData) {
                     const { extractContourFromPNG } = await import(
                       "../utils/pngContourExtractor"
                     );
@@ -437,7 +364,7 @@ const NonConvexForm = (props) => {
                 fontFamily,
                 sizeOptimization,
                 colorPalette: event.target.elements.colorPalette.value,
-                useInitialPositions,
+                useInitialPositions: true,
               });
 
               console.log("NonConvexForm - received result:", {
@@ -453,7 +380,7 @@ const NonConvexForm = (props) => {
               });
             } catch (e) {
               console.error(e);
-              setErrorMessage(e.message || "エラーが発生しました。もう一度お試しください。");
+              setErrorMessage(e.message || "Something went wrong. Please try again.");
             } finally {
               setLoading(false);
             }
@@ -465,6 +392,27 @@ const NonConvexForm = (props) => {
               <textarea name="text" className="textarea" />
             </div>
           </div>
+          <details className="form-disclosure">
+            <summary>
+              <span>Excluded Words</span>
+              <span className="disclosure-note">Optional</span>
+            </summary>
+            <div className="disclosure-content">
+              <div className="control">
+                <input
+                  className="input"
+                  name="excludeWords"
+                  type="text"
+                  placeholder="e.g. the, and, of"
+                  value={excludeWords}
+                  onChange={(event) => setExcludeWords(event.target.value)}
+                />
+              </div>
+              <p className="help">
+                Separate multiple words with commas or spaces.
+              </p>
+            </div>
+          </details>
           <div className="field is-grouped is-grouped-multiline">
             <div className="control">
               <div className="file is-light is-small">
@@ -474,6 +422,9 @@ const NonConvexForm = (props) => {
                     type="file"
                     onChange={(event) => {
                       const file = event.target.files[0];
+                      if (!file) {
+                        return;
+                      }
                       const reader = new FileReader();
                       reader.onload = (event) => {
                         formRef.current.elements.text.value =
@@ -494,6 +445,9 @@ const NonConvexForm = (props) => {
                 onClick={async (event) => {
                   event.preventDefault();
                   const url = prompt("Enter Wikipedia URL");
+                  if (!url) {
+                    return;
+                  }
                   const text = await fetchWikipediaData(url);
                   formRef.current.elements.text.value = text;
                 }}
@@ -525,22 +479,6 @@ const NonConvexForm = (props) => {
                 </select>
               </div>
             </div>
-          </div>
-          <div className="field">
-            <label className="label">除外する単語</label>
-            <div className="control">
-              <input
-                className="input"
-                name="excludeWords"
-                type="text"
-                placeholder="例: the, and, of (カンマまたはスペース区切り)"
-                value={excludeWords}
-                onChange={(e) => setExcludeWords(e.target.value)}
-              />
-            </div>
-            <p className="help">
-              出力結果から除外したい単語を入力してください。カンマまたはスペースで区切って複数指定できます。
-            </p>
           </div>
           <div className="columns is-multiline">
             <div className="column is-4">
@@ -588,41 +526,41 @@ const NonConvexForm = (props) => {
             </div>
             <div className="column is-4">
               <div className="field">
-                <label className="label">
-                  Outside Region (非凸領域)
-                  <button
-                    type="button"
-                    className="button is-small is-light is-pulled-right"
-                    onClick={() => setLayoutMode(layoutMode === "dropdown" ? "horizontal" : "dropdown")}
-                    style={{ marginLeft: "10px" }}
-                  >
-                    {layoutMode === "dropdown" ? "横長レイアウト" : "ドロップダウン"}
-                  </button>
-                </label>
-                {layoutMode === "dropdown" ? (
-                  <div className="control">
-                    <div className="select is-fullwidth">
-                      <select
-                        name="ousideRegion"
-                        value={selectedRegion || nonConvexRegions[0]?.label}
-                        onChange={(e) => {
-                          setSelectedRegion(e.target.value);
-                          updateRegionPreview(e.target.value);
-                        }}
-                      >
-                        {allRegions.map((region) => {
-                          return (
-                            <option key={region.label} value={region.label}>
-                              {region.label}
-                            </option>
-                          );
-                        })}
-                      </select>
-                    </div>
+                <label className="label">Outside Region</label>
+                <div className="control">
+                  <div className="select is-fullwidth">
+                    <select
+                      name="outsideRegion"
+                      value={selectedRegion}
+                      onChange={(event) => {
+                        setSelectedRegion(event.target.value);
+                        updateRegionPreview(event.target.value);
+                      }}
+                    >
+                      <optgroup label="Convex Regions">
+                        {convexRegions.map((region) => (
+                          <option key={region.label} value={region.label}>
+                            {region.label}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Non-Convex Regions">
+                        {nonConvexRegions.map((region) => (
+                          <option key={region.label} value={region.label}>
+                            {region.label}
+                          </option>
+                        ))}
+                      </optgroup>
+                      {customPngData && (
+                        <optgroup label="Custom Region">
+                          <option value={`Custom PNG: ${customPngName}`}>
+                            {`Custom PNG: ${customPngName}`}
+                          </option>
+                        </optgroup>
+                      )}
+                    </select>
                   </div>
-                ) : (
-                  <input type="hidden" name="ousideRegion" value={selectedRegion || nonConvexRegions[0]?.label} />
-                )}
+                </div>
               </div>
             </div>
             <div className="column is-4">
@@ -722,239 +660,9 @@ const NonConvexForm = (props) => {
                 </div>
               </div>
             </div>
-            <div className="column is-12">
-              <div className="field">
-                <label className="checkbox">
-                  <input
-                    type="checkbox"
-                    checked={useInitialPositions}
-                    onChange={(e) => setUseInitialPositions(e.target.checked)}
-                    style={{ marginRight: "0.5rem" }}
-                  />
-                  スプリングレイアウトの初期位置を使用
-                </label>
-                <p className="help">
-                  単語間の意味的距離がレイアウトに反映されます
-                </p>
-              </div>
-            </div>
           </div>
 
-          {/* 横長レイアウトの領域選択 */}
-          {layoutMode === "horizontal" && (
-            <div className="field">
-              <label className="label">Select Region Shape</label>
-              <div className="box" style={{ backgroundColor: "#f9f9f9", padding: "1.5rem" }}>
-                <div style={{ 
-                  display: "grid", 
-                  gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
-                  gap: "1rem",
-                  marginBottom: "1rem"
-                }}>
-                  {allRegions.map((region) => {
-                    const isSelected = selectedRegion === region.label;
-                    return (
-                      <div
-                        key={region.label}
-                        onClick={() => {
-                          setSelectedRegion(region.label);
-                          updateRegionPreview(region.label);
-                        }}
-                        style={{
-                          cursor: "pointer",
-                          border: isSelected ? "3px solid #3273dc" : "2px solid #dbdbdb",
-                          borderRadius: "8px",
-                          padding: "1rem",
-                          backgroundColor: isSelected ? "#f0f7ff" : "white",
-                          transition: "all 0.2s ease",
-                          textAlign: "center",
-                          minHeight: "120px",
-                          display: "flex",
-                          flexDirection: "column",
-                          justifyContent: "center",
-                          alignItems: "center",
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!isSelected) {
-                            e.currentTarget.style.borderColor = "#3273dc";
-                            e.currentTarget.style.backgroundColor = "#fafafa";
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!isSelected) {
-                            e.currentTarget.style.borderColor = "#dbdbdb";
-                            e.currentTarget.style.backgroundColor = "white";
-                          }
-                        }}
-                      >
-                        {/* 簡易的な形状プレビュー */}
-                        <div style={{ marginBottom: "0.5rem" }}>
-                          {(() => {
-                            // 各形状に対応するシンプルなSVGアイコンを表示
-                            const iconSize = 50;
-                            const strokeColor = isSelected ? "#3273dc" : "#666";
-                            
-                            if (region.label === "L Shape") {
-                              return (
-                                <svg width={iconSize} height={iconSize} viewBox="0 0 100 100">
-                                  <path d="M20 20 L20 80 L50 80 L50 50 L80 50 L80 20 Z" 
-                                    fill="none" stroke={strokeColor} strokeWidth="3"/>
-                                </svg>
-                              );
-                            } else if (region.label === "Star Shape") {
-                              return (
-                                <svg width={iconSize} height={iconSize} viewBox="0 0 100 100">
-                                  <path d="M50 15 L60 40 L85 40 L65 55 L75 80 L50 65 L25 80 L35 55 L15 40 L40 40 Z" 
-                                    fill="none" stroke={strokeColor} strokeWidth="3"/>
-                                </svg>
-                              );
-                            } else if (region.label === "Cross Shape") {
-                              return (
-                                <svg width={iconSize} height={iconSize} viewBox="0 0 100 100">
-                                  <path d="M35 20 L65 20 L65 35 L80 35 L80 65 L65 65 L65 80 L35 80 L35 65 L20 65 L20 35 L35 35 Z" 
-                                    fill="none" stroke={strokeColor} strokeWidth="3"/>
-                                </svg>
-                              );
-                            } else if (region.label === "Heart Shape") {
-                              return (
-                                <svg width={iconSize} height={iconSize} viewBox="0 0 100 100">
-                                  <path d="M50 25 C30 10, 10 25, 25 45 L50 75 L75 45 C90 25, 70 10, 50 25 Z" 
-                                    fill="none" stroke={strokeColor} strokeWidth="3"/>
-                                </svg>
-                              );
-                            } else if (region.label === "Horizontal T Shape") {
-                              return (
-                                <svg width={iconSize} height={iconSize} viewBox="0 0 100 100">
-                                  <path d="M10 30 L90 30 L90 50 L60 50 L60 80 L40 80 L40 50 L10 50 Z" 
-                                    fill="none" stroke={strokeColor} strokeWidth="3"/>
-                                </svg>
-                              );
-                            } else if (region.label === "Horizontal U Shape") {
-                              return (
-                                <svg width={iconSize} height={iconSize} viewBox="0 0 100 100">
-                                  <path d="M20 30 L20 70 L35 70 L35 45 L65 45 L65 70 L80 70 L80 30 Z" 
-                                    fill="none" stroke={strokeColor} strokeWidth="3"/>
-                                </svg>
-                              );
-                            } else if (region.label === "Horizontal Steps") {
-                              return (
-                                <svg width={iconSize} height={iconSize} viewBox="0 0 100 100">
-                                  <path d="M20 30 L40 30 L40 45 L60 45 L60 60 L80 60 L80 75 L20 75 Z" 
-                                    fill="none" stroke={strokeColor} strokeWidth="3"/>
-                                </svg>
-                              );
-                            } else if (region.isCustom) {
-                              // カスタムファイルのアイコン
-                              return (
-                                <svg width={iconSize} height={iconSize} viewBox="0 0 100 100">
-                                  <rect x="20" y="15" width="60" height="70" rx="5" 
-                                    fill="none" stroke={strokeColor} strokeWidth="3"/>
-                                  <polyline points="60,15 60,30 80,30" 
-                                    fill="none" stroke={strokeColor} strokeWidth="3"/>
-                                  {region.type === "png" && (
-                                    <circle cx="40" cy="50" r="5" fill={strokeColor}/>
-                                  )}
-                                  <text x="50" y="65" textAnchor="middle" fontSize="14" fill={strokeColor}>
-                                    {region.type?.toUpperCase()}
-                                  </text>
-                                </svg>
-                              );
-                            } else {
-                              // デフォルトの四角形
-                              return (
-                                <svg width={iconSize} height={iconSize} viewBox="0 0 100 100">
-                                  <rect x="25" y="25" width="50" height="50" 
-                                    fill="none" stroke={strokeColor} strokeWidth="3"/>
-                                </svg>
-                              );
-                            }
-                          })()}
-                        </div>
-                        <div style={{ 
-                          fontSize: "0.875rem",
-                          fontWeight: isSelected ? "600" : "400",
-                          color: isSelected ? "#3273dc" : "#4a4a4a",
-                          wordBreak: "break-word",
-                          lineHeight: "1.2"
-                        }}>
-                          {region.label}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <p className="help has-text-centered">
-                  Click on a shape to select it as the outside region for the Voronoi Treemap
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* カスタムSVGアップロード */}
-          <div className="field">
-            <label className="label">Upload Custom SVG</label>
-            <div className="box" style={{ backgroundColor: "#f9f9f9", borderStyle: "dashed", borderColor: "#dbdbdb" }}>
-              <div className="file is-boxed is-fullwidth has-name">
-                <label className="file-label" style={{ width: "100%" }}>
-                  <input
-                    className="file-input"
-                    type="file"
-                    accept=".svg"
-                    onChange={async (event) => {
-                      const file = event.target.files[0];
-                      if (file && file.type === "image/svg+xml") {
-                        const reader = new FileReader();
-                        reader.onload = (e) => {
-                          setCustomSvgData(e.target.result);
-                          setCustomSvgName(file.name);
-                          // 自動的にカスタムSVGを選択
-                          setTimeout(() => {
-                            const customLabel = `Custom SVG: ${file.name}`;
-                            setSelectedRegion(customLabel);
-                            if (layoutMode === "dropdown") {
-                              formRef.current.elements.ousideRegion.value = customLabel;
-                            }
-                            updateRegionPreview(customLabel);
-                          }, 100);
-                        };
-                        reader.readAsText(file);
-                      } else {
-                        alert("Please select an SVG file.");
-                      }
-                    }}
-                  />
-                  <span className="file-cta" style={{ width: "100%", justifyContent: "center" }}>
-                    <span className="file-icon">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                        <line x1="12" y1="18" x2="12" y2="12"></line>
-                        <line x1="9" y1="15" x2="15" y2="15"></line>
-                      </svg>
-                    </span>
-                  </span>
-                  {customSvgName && (
-                    <span className="file-name" style={{ width: "100%", justifyContent: "center", marginTop: "0.5rem" }}>
-                      <span className="tag is-success">
-                        <span className="icon is-small">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                          </svg>
-                        </span>
-                        <span>{customSvgName}</span>
-                      </span>
-                    </span>
-                  )}
-                </label>
-              </div>
-              <p className="help has-text-centered" style={{ marginTop: "0.5rem" }}>
-                Upload an SVG file to use as a custom region.
-                The uploaded SVG will be automatically added to the Outside Region options.
-              </p>
-            </div>
-          </div>
-
-          {/* カスタムPNGアップロード */}
+          {/* Custom PNG upload */}
           <div className="field">
             <label className="label">Upload Custom PNG (Transparent Background)</label>
             <div className="box" style={{ backgroundColor: "#f9f9f9", borderStyle: "dashed", borderColor: "#dbdbdb" }}>
@@ -966,20 +674,14 @@ const NonConvexForm = (props) => {
                     accept=".png"
                     onChange={async (event) => {
                       const file = event.target.files[0];
-                      if (file && file.type === "image/png") {
+                      if (!file) {
+                        return;
+                      }
+                      if (file.type === "image/png") {
                         const reader = new FileReader();
                         reader.onload = (e) => {
                           setCustomPngData(e.target.result);
                           setCustomPngName(file.name);
-                          // 自動的にカスタムPNGを選択
-                          setTimeout(() => {
-                            const customLabel = `Custom PNG: ${file.name}`;
-                            setSelectedRegion(customLabel);
-                            if (layoutMode === "dropdown") {
-                              formRef.current.elements.ousideRegion.value = customLabel;
-                            }
-                            updateRegionPreview(customLabel);
-                          }, 100);
                         };
                         reader.readAsDataURL(file);
                       } else {
@@ -1020,11 +722,14 @@ const NonConvexForm = (props) => {
             </div>
           </div>
 
-          {/* 領域プレビュー */}
+          {/* Region preview */}
           {(selectedRegionPreview || previewError) && (
-            <div className="field">
-              <label className="label">Region Preview</label>
-              <div className="box" style={{ backgroundColor: "#f5f5f5" }}>
+            <details className="form-disclosure region-preview-disclosure">
+              <summary>
+                <span>Region Preview</span>
+                <span className="disclosure-note">{selectedRegion}</span>
+              </summary>
+              <div className="disclosure-content region-preview-content">
                 {previewError ? (
                   <p className="has-text-danger">{previewError}</p>
                 ) : (
@@ -1096,7 +801,7 @@ const NonConvexForm = (props) => {
                   })()
                 )}
               </div>
-            </div>
+            </details>
           )}
 
           <div className="field">
@@ -1112,7 +817,7 @@ const NonConvexForm = (props) => {
           {errorMessage && (
             <div className="notification is-danger is-light">
               <button className="delete" onClick={() => setErrorMessage(null)} />
-              <strong>エラー:</strong> {errorMessage}
+              <strong>Error:</strong> {errorMessage}
             </div>
           )}
         </form>

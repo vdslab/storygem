@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useId, useRef } from "react";
 import { fontSize } from "../fonts";
 import { SVGConverter } from "../image";
 
@@ -33,6 +33,7 @@ const download = (url, filename) => {
 
 const NonConvexVoronoiTreeMap = ({ data }) => {
   const svgRef = useRef();
+  const regionClipId = useId().replace(/:/g, "");
 
   if (data == null) {
     return null;
@@ -74,6 +75,9 @@ const NonConvexVoronoiTreeMap = ({ data }) => {
           >
             <defs>
               <style>{styleContent}</style>
+              <clipPath id={regionClipId} clipPathUnits="userSpaceOnUse">
+                <path d={"M" + outsideRegion.join("L") + "Z"} />
+              </clipPath>
             </defs>
             <path
               d={"M" + outsideRegion.join("L") + "Z"}
@@ -83,7 +87,7 @@ const NonConvexVoronoiTreeMap = ({ data }) => {
               strokeDasharray="5,5"
             />
 
-            <g>
+            <g clipPath={`url(#${regionClipId})`}>
               {cells.map((node) => {
                 return (
                   <g key={node.id}>
@@ -97,7 +101,7 @@ const NonConvexVoronoiTreeMap = ({ data }) => {
                 );
               })}
             </g>
-            <g>
+            <g clipPath={`url(#${regionClipId})`}>
               {cells
                 .filter((node) => node.data.word && node.textTransform?.lines)
                 .map((node) => {
