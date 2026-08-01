@@ -79,14 +79,6 @@ const NonConvexVoronoiTreeMap = ({ data }) => {
                 <path d={"M" + outsideRegion.join("L") + "Z"} />
               </clipPath>
             </defs>
-            <path
-              d={"M" + outsideRegion.join("L") + "Z"}
-              fill="none"
-              stroke={fontColor}
-              strokeWidth={2}
-              strokeDasharray="5,5"
-            />
-
             <g clipPath={`url(#${regionClipId})`}>
               {cells.map((node) => {
                 return (
@@ -101,6 +93,14 @@ const NonConvexVoronoiTreeMap = ({ data }) => {
                 );
               })}
             </g>
+            <path
+              d={"M" + outsideRegion.join("L") + "Z"}
+              fill="none"
+              stroke={fontColor}
+              strokeWidth={defaultStrokeWidth}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
             <g clipPath={`url(#${regionClipId})`}>
               {cells
                 .filter((node) => node.data.word && node.textTransform?.lines)

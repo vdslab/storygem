@@ -784,17 +784,18 @@ const NonConvexForm = (props) => {
                       >
                         <path
                           d={"M" + validPoints.map(p => `${p[0]},${p[1]}`).join("L") + "Z"}
+                          fill="#e0e0e0"
+                          fillOpacity="0.3"
+                        />
+                        <path
+                          d={"M" + validPoints.map(p => `${p[0]},${p[1]}`).join("L") + "Z"}
                           fill="none"
                           stroke="#333"
                           strokeWidth={
                             Math.max(viewBoxWidth, viewBoxHeight) * 0.005
                           }
-                          strokeDasharray={`${Math.max(viewBoxWidth, viewBoxHeight) * 0.01},${Math.max(viewBoxWidth, viewBoxHeight) * 0.005}`}
-                        />
-                        <path
-                          d={"M" + validPoints.map(p => `${p[0]},${p[1]}`).join("L") + "Z"}
-                          fill="#e0e0e0"
-                          fillOpacity="0.3"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
                         />
                       </svg>
                     );

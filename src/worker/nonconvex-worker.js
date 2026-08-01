@@ -2,8 +2,11 @@ console.log("nonconvex-worker.js loaded");
 
 import * as d3 from "d3";
 import GLPK from "glpk.js";
+import polylabel from "polylabel";
 import { makeLpObject } from "./lp";
 import { fontSize } from "../fonts";
+
+const GEOMETRY_EPSILON = 1e-7;
 
 function pointInPolygon(point, polygon) {
   const [x, y] = point;
@@ -19,6 +22,93 @@ function pointInPolygon(point, polygon) {
   }
 
   return inside;
+}
+
+function pointOnSegment(point, start, end, epsilon = GEOMETRY_EPSILON) {
+  const segmentX = end[0] - start[0];
+  const segmentY = end[1] - start[1];
+  const pointX = point[0] - start[0];
+  const pointY = point[1] - start[1];
+  const cross = segmentX * pointY - segmentY * pointX;
+  const segmentLength = Math.hypot(segmentX, segmentY);
+
+  if (Math.abs(cross) > epsilon * Math.max(1, segmentLength)) return false;
+
+  const dot = pointX * segmentX + pointY * segmentY;
+  const squaredLength = segmentX * segmentX + segmentY * segmentY;
+  return dot >= -epsilon && dot <= squaredLength + epsilon;
+}
+
+function pointInOrOnPolygon(point, polygon) {
+  for (let i = 0; i < polygon.length; i++) {
+    if (pointOnSegment(point, polygon[i], polygon[(i + 1) % polygon.length])) {
+      return true;
+    }
+  }
+  return pointInPolygon(point, polygon);
+}
+
+function polygonBounds(polygon) {
+  const xMin = Math.min(...polygon.map((point) => point[0]));
+  const xMax = Math.max(...polygon.map((point) => point[0]));
+  const yMin = Math.min(...polygon.map((point) => point[1]));
+  const yMax = Math.max(...polygon.map((point) => point[1]));
+  return { xMin, xMax, yMin, yMax, width: xMax - xMin, height: yMax - yMin };
+}
+
+function poleOfInaccessibility(polygon) {
+  const bounds = polygonBounds(polygon);
+  const precision = Math.max(
+    Math.max(bounds.width, bounds.height) / 1000,
+    GEOMETRY_EPSILON,
+  );
+  const pole = polylabel([polygon], precision);
+  return [pole[0], pole[1]];
+}
+
+function movePointTowardPole(point, polygon, pole) {
+  if (pointInOrOnPolygon(point, polygon)) return [...point];
+
+  const sampleCount = 256;
+  let outsideT = 0;
+  let insideT = 1;
+  let foundInterior = false;
+
+  for (let i = 1; i <= sampleCount; i++) {
+    const t = i / sampleCount;
+    const candidate = [
+      point[0] + (pole[0] - point[0]) * t,
+      point[1] + (pole[1] - point[1]) * t,
+    ];
+    if (pointInOrOnPolygon(candidate, polygon)) {
+      outsideT = (i - 1) / sampleCount;
+      insideT = t;
+      foundInterior = true;
+      break;
+    }
+  }
+
+  if (!foundInterior) return [...pole];
+
+  for (let i = 0; i < 30; i++) {
+    const midT = (outsideT + insideT) / 2;
+    const candidate = [
+      point[0] + (pole[0] - point[0]) * midT,
+      point[1] + (pole[1] - point[1]) * midT,
+    ];
+    if (pointInOrOnPolygon(candidate, polygon)) {
+      insideT = midT;
+    } else {
+      outsideT = midT;
+    }
+  }
+
+  const insetT = Math.min(1, insideT + 1 / (sampleCount * 100));
+  const movedPoint = [
+    point[0] + (pole[0] - point[0]) * insetT,
+    point[1] + (pole[1] - point[1]) * insetT,
+  ];
+  return pointInOrOnPolygon(movedPoint, polygon) ? movedPoint : [...pole];
 }
 
 function polygonArea(polygon) {
@@ -275,9 +365,9 @@ function computeVoronoiTreemap(
   // 初期生成点の配置
   let generators;
   if (initialPoints && initialPoints.length === n) {
-    // 境界外の初期点はランダムな内部点で代替（centroidは非凸領域で境界外になりうるため使わない）
-    generators = initialPoints.map(p =>
-      pointInPolygon(p, boundary) ? [...p] : randomPointInPolygon(boundary)
+    const pole = poleOfInaccessibility(boundary);
+    generators = initialPoints.map((point) =>
+      movePointTowardPole(point, boundary, pole)
     );
   } else {
     // グリッド配置 + ランダムフォールバック
@@ -517,6 +607,248 @@ function rotate(q, theta) {
   return q.map(([x, y]) => [x * cos - y * sin, x * sin + y * cos]);
 }
 
+function cross2D(a, b) {
+  return a[0] * b[1] - a[1] * b[0];
+}
+
+function segmentIntersectionParameters(start, end, edgeStart, edgeEnd) {
+  const segment = [end[0] - start[0], end[1] - start[1]];
+  const edge = [edgeEnd[0] - edgeStart[0], edgeEnd[1] - edgeStart[1]];
+  const offset = [edgeStart[0] - start[0], edgeStart[1] - start[1]];
+  const denominator = cross2D(segment, edge);
+
+  if (Math.abs(denominator) > GEOMETRY_EPSILON) {
+    const t = cross2D(offset, edge) / denominator;
+    const u = cross2D(offset, segment) / denominator;
+    if (
+      t >= -GEOMETRY_EPSILON &&
+      t <= 1 + GEOMETRY_EPSILON &&
+      u >= -GEOMETRY_EPSILON &&
+      u <= 1 + GEOMETRY_EPSILON
+    ) {
+      return [Math.max(0, Math.min(1, t))];
+    }
+    return [];
+  }
+
+  if (Math.abs(cross2D(offset, segment)) > GEOMETRY_EPSILON) return [];
+
+  const squaredLength = segment[0] * segment[0] + segment[1] * segment[1];
+  if (squaredLength <= GEOMETRY_EPSILON) return [];
+
+  const t0 = (offset[0] * segment[0] + offset[1] * segment[1]) / squaredLength;
+  const edgeEndOffset = [edgeEnd[0] - start[0], edgeEnd[1] - start[1]];
+  const t1 =
+    (edgeEndOffset[0] * segment[0] + edgeEndOffset[1] * segment[1]) /
+    squaredLength;
+  const overlapStart = Math.max(0, Math.min(t0, t1));
+  const overlapEnd = Math.min(1, Math.max(t0, t1));
+  return overlapStart <= overlapEnd + GEOMETRY_EPSILON
+    ? [overlapStart, overlapEnd]
+    : [];
+}
+
+function polygonContainsPolygon(container, subject) {
+  if (!subject.length) return false;
+  if (!subject.every((point) => pointInOrOnPolygon(point, container))) {
+    return false;
+  }
+
+  for (let i = 0; i < subject.length; i++) {
+    const start = subject[i];
+    const end = subject[(i + 1) % subject.length];
+    const parameters = [0, 1];
+
+    for (let j = 0; j < container.length; j++) {
+      parameters.push(
+        ...segmentIntersectionParameters(
+          start,
+          end,
+          container[j],
+          container[(j + 1) % container.length],
+        ),
+      );
+    }
+
+    parameters.sort((a, b) => a - b);
+    for (let j = 0; j < parameters.length - 1; j++) {
+      if (parameters[j + 1] - parameters[j] <= GEOMETRY_EPSILON) continue;
+      const t = (parameters[j] + parameters[j + 1]) / 2;
+      const midpoint = [
+        start[0] + (end[0] - start[0]) * t,
+        start[1] + (end[1] - start[1]) * t,
+      ];
+      if (!pointInOrOnPolygon(midpoint, container)) return false;
+    }
+  }
+
+  return true;
+}
+
+async function solveLpPlacement(container, subject, glpk) {
+  try {
+    const [px, py] = convert2DArrayTo1DArray(sortVerticesClockwise(container));
+    const [qx, qy] = convert2DArrayTo1DArray(sortVerticesClockwise(subject));
+    const [objective, subjectTo] = makeLpObject(px, py, qx, qy);
+    const { result } = await glpk.solve(
+      {
+        name: "LP",
+        objective,
+        subjectTo,
+      },
+      {
+        msglev: glpk.GLP_MSG_ERR,
+        presol: false,
+      },
+    );
+
+    if (!result?.vars) return null;
+
+    const [scale, dx, dy] = calcResizeValue(result, px, py, qx, qy);
+    if (!isFinite(scale) || scale <= 0) return null;
+
+    const placedPolygon = qx.map((_, subjectIndex) => {
+      let x = 0;
+      let y = 0;
+      for (let containerIndex = 0; containerIndex < px.length; containerIndex++) {
+        const lambdaName = `lambda${subjectIndex + 1}_${containerIndex + 1}`;
+        x += (result.vars[lambdaName] || 0) * px[containerIndex];
+        y += (result.vars[lambdaName] || 0) * py[containerIndex];
+      }
+      return [x, y];
+    });
+
+    return { scale, dx, dy, polygon: placedPolygon };
+  } catch (error) {
+    console.warn("LP placement failed:", error);
+    return null;
+  }
+}
+
+function createFixedAspectInscribedEllipse(
+  polygon,
+  textPolygon,
+  rotation,
+  vertexCount = 12,
+) {
+  const localText = rotate(textPolygon, -rotation);
+  const textBounds = polygonBounds(localText);
+  if (textBounds.width <= GEOMETRY_EPSILON || textBounds.height <= GEOMETRY_EPSILON) {
+    return null;
+  }
+
+  const aspectRatio = Math.max(
+    1e-4,
+    Math.min(1e4, textBounds.width / textBounds.height),
+  );
+  const localPolygon = rotate(polygon, -rotation);
+  const normalizedPolygon = localPolygon.map(([x, y]) => [x / aspectRatio, y]);
+  const normalizedBounds = polygonBounds(normalizedPolygon);
+  const precision = Math.max(
+    Math.max(normalizedBounds.width, normalizedBounds.height) / 500,
+    GEOMETRY_EPSILON,
+  );
+  const pole = polylabel([normalizedPolygon], precision);
+  const radius = pole.distance * 0.995;
+  if (!isFinite(radius) || radius <= GEOMETRY_EPSILON) return null;
+
+  const ellipse = [];
+  for (let i = 0; i < vertexCount; i++) {
+    const angle = (2 * Math.PI * i) / vertexCount;
+    const localPoint = [
+      (pole[0] + radius * Math.cos(angle)) * aspectRatio,
+      pole[1] + radius * Math.sin(angle),
+    ];
+    ellipse.push(rotate([localPoint], rotation)[0]);
+  }
+  return ellipse;
+}
+
+function placePolygonAtCenter(subject, subjectCenter, center, scale) {
+  return subject.map(([x, y]) => [
+    center[0] + (x - subjectCenter[0]) * scale,
+    center[1] + (y - subjectCenter[1]) * scale,
+  ]);
+}
+
+function addUniqueCenter(centers, center, polygon) {
+  if (!center || !pointInOrOnPolygon(center, polygon)) return;
+  if (centers.some((candidate) => Math.hypot(
+    candidate[0] - center[0],
+    candidate[1] - center[1],
+  ) < GEOMETRY_EPSILON)) {
+    return;
+  }
+  centers.push(center);
+}
+
+function maximizePlacementInNonConvexPolygon(
+  polygon,
+  subject,
+  upperPlacement,
+  lowerPlacement,
+) {
+  const subjectCenter = polygonCentroid(subject);
+  const upperCenter = polygonCentroid(upperPlacement.polygon);
+  const lowerCenter = lowerPlacement
+    ? polygonCentroid(lowerPlacement.polygon)
+    : poleOfInaccessibility(polygon);
+  const centers = [];
+
+  addUniqueCenter(centers, lowerCenter, polygon);
+  addUniqueCenter(centers, upperCenter, polygon);
+  addUniqueCenter(centers, poleOfInaccessibility(polygon), polygon);
+  addUniqueCenter(
+    centers,
+    representativePointInPolygon(polygon, polygonCentroid(polygon)),
+    polygon,
+  );
+
+  for (const t of [0.25, 0.5, 0.75]) {
+    addUniqueCenter(centers, [
+      lowerCenter[0] + (upperCenter[0] - lowerCenter[0]) * t,
+      lowerCenter[1] + (upperCenter[1] - lowerCenter[1]) * t,
+    ], polygon);
+  }
+
+  let bestPlacement = null;
+  if (lowerPlacement && polygonContainsPolygon(polygon, lowerPlacement.polygon)) {
+    bestPlacement = lowerPlacement;
+  }
+
+  for (const center of centers) {
+    let low = 0;
+    let high = upperPlacement.scale;
+    const upperPolygon = placePolygonAtCenter(subject, subjectCenter, center, high);
+
+    if (polygonContainsPolygon(polygon, upperPolygon)) {
+      low = high;
+    } else {
+      for (let iteration = 0; iteration < 20; iteration++) {
+        const mid = (low + high) / 2;
+        const candidate = placePolygonAtCenter(subject, subjectCenter, center, mid);
+        if (polygonContainsPolygon(polygon, candidate)) {
+          low = mid;
+        } else {
+          high = mid;
+        }
+      }
+    }
+
+    if (!bestPlacement || low > bestPlacement.scale) {
+      const placedPolygon = placePolygonAtCenter(subject, subjectCenter, center, low);
+      bestPlacement = {
+        scale: low,
+        dx: center[0] - low * subjectCenter[0],
+        dy: center[1] - low * subjectCenter[1],
+        polygon: placedPolygon,
+      };
+    }
+  }
+
+  return bestPlacement;
+}
+
 function isConvex(polygon) {
   const n = polygon.length;
   if (n < 3) return false;
@@ -547,19 +879,10 @@ async function textTransform(node, sizeOptimization, glpk) {
   if (!polygon || polygon.length < 3) {
     return null;
   }
-  
-  // デバッグ用：breadの場合は詳細をログ出力
-  if (node.data.word === "bread") {
-    console.log("Processing bread text placement:", {
-      polygon: polygon,
-      area: polygonArea(polygon),
-      centroid: polygonCentroid(polygon)
-    });
-  }
-  
+
   const convexHullPolygon = d3.polygonHull(polygon);
-  
-  if (sizeOptimization && convexHullPolygon && isConvex(convexHullPolygon)) {
+
+  if (sizeOptimization && convexHullPolygon) {
     const { rotateStep } = sizeOptimization;
     let s = 0;
     let dx = 0;
@@ -568,7 +891,6 @@ async function textTransform(node, sizeOptimization, glpk) {
     let resultText = null;
     let textPolygon = null;
 
-    const [px, py] = convert2DArrayTo1DArray(sortVerticesClockwise(convexHullPolygon));
     const radianList = [0];
     if (rotateStep) {
       for (let t = rotateStep; t <= 90; t += rotateStep) {
@@ -576,104 +898,48 @@ async function textTransform(node, sizeOptimization, glpk) {
         radianList.push((-Math.PI * t) / 180);
       }
     }
-    
+
+    const polygonIsConvex = isConvex(polygon);
     for (let radian of radianList) {
       for (const { lines, imageData } of node.data.wordPixels) {
-        const [qx, qy] = convert2DArrayTo1DArray(
-          sortVerticesClockwise(rotate(getConvexHull(imageData), radian)),
+        const rotatedTextPolygon = sortVerticesClockwise(
+          rotate(getConvexHull(imageData), radian),
         );
-        const [objective, subjectTo] = makeLpObject(px, py, qx, qy);
-        const options = {
-          msglev: glpk.GLP_MSG_ERR,
-          presol: false,
-        };
-        const { result } = await glpk.solve(
-          {
-            name: "LP",
-            objective: objective,
-            subjectTo: subjectTo,
-          },
-          options,
+        const upperPlacement = await solveLpPlacement(
+          convexHullPolygon,
+          rotatedTextPolygon,
+          glpk,
         );
-        const [stateS, statedx, statedy] = calcResizeValue(
-          result,
-          px,
-          py,
-          qx,
-          qy,
-        );
-        
-        // スケーリングを100%に設定（最大限活用）
-        const testScale = stateS * 1.0;
-        const testDx = statedx;
-        const testDy = statedy;
-        
-        const textCorners = [];
-        for (let j = 0; j < qx.length; j++) {
-          let x = 0;
-          let y = 0;
-          for (let i = 0; i < px.length; i++) {
-            const lambdaName1 = `lambda${j + 1}_${i + 1}`;
-            x += result.vars[lambdaName1] * px[i];
-            y += result.vars[lambdaName1] * py[i];
-          }
-          textCorners.push([x, y]);
+        if (!upperPlacement) continue;
+
+        let placement = upperPlacement;
+        if (
+          !polygonIsConvex &&
+          !polygonContainsPolygon(polygon, upperPlacement.polygon)
+        ) {
+          const ellipsePolygon = createFixedAspectInscribedEllipse(
+            polygon,
+            rotatedTextPolygon,
+            radian,
+          );
+          const lowerPlacement = ellipsePolygon
+            ? await solveLpPlacement(ellipsePolygon, rotatedTextPolygon, glpk)
+            : null;
+          placement = maximizePlacementInNonConvexPolygon(
+            polygon,
+            rotatedTextPolygon,
+            upperPlacement,
+            lowerPlacement,
+          );
         }
-        
-        // 境界チェック（簡略化してパフォーマンスと表示率を改善）
-        let allInside = true;
-        
-        for (const corner of textCorners) {
-          if (!pointInPolygon(corner, polygon)) {
-            allInside = false;
-            break;
-          }
-        }
-        
-        let finalScale = testScale;
-        if (!allInside) {
-          // より細かい二分探索
-          let low = 0;
-          let high = testScale;
-          const iterations = 20; // 反復回数を増やす
-          
-          for (let iter = 0; iter < iterations; iter++) {
-            const mid = (low + high) / 2;
-            const midCorners = textCorners.map(([x, y]) => {
-              const scaledX = testDx + (x - testDx) * (mid / testScale);
-              const scaledY = testDy + (y - testDy) * (mid / testScale);
-              return [scaledX, scaledY];
-            });
-            
-            let midAllInside = true;
-            for (const corner of midCorners) {
-              if (!pointInPolygon(corner, polygon)) {
-                midAllInside = false;
-                break;
-              }
-            }
-            
-            if (midAllInside) {
-              low = mid;
-            } else {
-              high = mid;
-            }
-          }
-          
-          finalScale = low; // 安全マージンを削除
-        }
-        
-        if (finalScale > s) {
-          s = finalScale;
-          dx = testDx;
-          dy = testDy;
+
+        if (placement && placement.scale > s) {
+          s = placement.scale;
+          dx = placement.dx;
+          dy = placement.dy;
           a = radian * (180 / Math.PI);
           resultText = lines;
-          textPolygon = textCorners.map(([x, y]) => {
-            const scaledX = dx + (x - dx) * (s / testScale);
-            const scaledY = dy + (y - dy) * (s / testScale);
-            return [scaledX, scaledY];
-          });
+          textPolygon = placement.polygon;
         }
       }
     }
